@@ -45,16 +45,11 @@ model.Generators = model.GD1Gens | model.GD2Gens | model.GD3Gens | model.GD4Gens
 ######=================================================########
 
 ### Generators by fuel-type
-model.Coal_st = Set()
-model.Oil_ic = Set()
-model.Oil_st = Set()
-model.Imp_Viet = Set()
-model.Imp_Thai = Set()
+model.Coal = Set()
+model.Oil = Set()
 model.Slack = Set()
-##model.Biomass_st = Set()
-##model.Gas_cc = Set()
-##model.Gas_st = Set()
-
+model.Gas = Set()
+mode.Hydro = Set()
 
 ######=================================================########
 ######               Segment B.3                       ########
@@ -65,10 +60,10 @@ model.nodes = Set()
 model.sources = Set(within=model.nodes)
 model.sinks = Set(within=model.nodes)
 
-model.h_nodes = Set()
-model.h_imports = Set()
-##model.s_nodes = Set()
-##model.w_nodes = Set()
+# model.h_nodes = Set()
+# model.h_imports = Set()
+# model.s_nodes = Set()
+# model.w_nodes = Set()
 
 model.d_nodes = Set()
 
@@ -118,9 +113,6 @@ model.minup = Param(model.Generators)
 #Minmun down time
 model.mindn = Param(model.Generators)
 
-#Derate_factor on Max_Capacity of water-dependant generators
-model.deratef = Param(model.Generators,within=NonNegativeReals)
-
 
 ######=================================================########
 ######               Segment B.5                       ########
@@ -149,7 +141,7 @@ model.SD_periods = RangeSet(1,model.SimDays+1)
 model.HorizonHours = Param(within=PositiveIntegers)
 model.HH_periods = RangeSet(0,model.HorizonHours)
 model.hh_periods = RangeSet(1,model.HorizonHours)
-model.ramp_periods = RangeSet(2,24)
+model.ramp_periods = RangeSet(2,48)
 
 ######=================================================########
 ######               Segment B.7                       ########
@@ -166,18 +158,13 @@ model.HorizonReserves = Param(model.hh_periods, within=NonNegativeReals,mutable=
 
 ##Variable resources over simulation period
 model.SimHydro = Param(model.h_nodes, model.SH_periods, within=NonNegativeReals)
-##model.SimSolar = Param(model.s_nodes, model.SH_periods, within=NonNegativeReals)
+model.SimSolar = Param(model.s_nodes, model.SH_periods, within=NonNegativeReals)
 ##model.SimWind = Param(model.w_nodes, model.SH_periods, within=NonNegativeReals)
 
 #Variable resources over horizon
 model.HorizonHydro = Param(model.h_nodes,model.hh_periods,within=NonNegativeReals,mutable=True)
-##model.HorizonSolar = Param(model.s_nodes,model.hh_periods,within=NonNegativeReals,mutable=True)
+model.HorizonSolar = Param(model.s_nodes,model.hh_periods,within=NonNegativeReals,mutable=True)
 ##model.HorizonWind = Param(model.w_nodes,model.hh_periods,within=NonNegativeReals,mutable=True)
-
-##Hydro import over simulation period
-model.SimHydroImport = Param(model.h_imports, model.SH_periods, within=NonNegativeReals)
-#Hydro import over horizon
-model.HorizonHydroImport = Param(model.h_imports,model.hh_periods,within=NonNegativeReals,mutable=True)
 
 ##Initial conditions
 model.ini_on = Param(model.Generators, within=Binary, initialize=0,mutable=True) 
@@ -208,12 +195,12 @@ model.nrsv = Var(model.Generators,model.HH_periods, within=NonNegativeReals,init
 #dispatch of hydropower from each domestic dam in each hour
 model.hydro = Var(model.h_nodes,model.HH_periods,within=NonNegativeReals)
 
-#dispatch of hydropower from each import dam in each hour
-model.hydro_import = Var(model.h_imports,model.HH_periods,within=NonNegativeReals)
+# #dispatch of hydropower from each import dam in each hour
+# model.hydro_import = Var(model.h_imports,model.HH_periods,within=NonNegativeReals)
 
-###dispatch of solar-power in each hour
-##model.solar = Var(model.s_nodes,model.HH_periods,within=NonNegativeReals)
-##
+##dispatch of solar-power in each hour
+model.solar = Var(model.s_nodes,model.HH_periods,within=NonNegativeReals)
+#
 ###dispatch of wind-power in each hour
 ##model.wind = Var(model.w_nodes,model.HH_periods,within=NonNegativeReals)
 
@@ -221,32 +208,22 @@ model.hydro_import = Var(model.h_imports,model.HH_periods,within=NonNegativeReal
 model.vlt_angle = Var(model.nodes,model.HH_periods)
 
 
-
 ######=================================================########
 ######               Segment B.9                       ########
 ######=================================================########
 
-######================Objective function=============########
+######=============Objective function==================########
 
 def SysCost(model):
     fixed = sum(model.maxcap[j]*model.fix_om[j]*model.on[j,i] for i in model.hh_periods for j in model.Generators)
     starts = sum(model.maxcap[j]*model.st_cost[j]*model.switch[j,i] for i in model.hh_periods for j in model.Generators)
-
-    coal_st = sum(model.mwh[j,i]*(model.heat_rate[j]*5.0 + model.var_om[j]) for i in model.hh_periods for j in model.Coal_st)  
-    oil_ic = sum(model.mwh[j,i]*(model.heat_rate[j]*6.5 + model.var_om[j]) for i in model.hh_periods for j in model.Oil_ic)
-    oil_st = sum(model.mwh[j,i]*(model.heat_rate[j]*6.5 + model.var_om[j]) for i in model.hh_periods for j in model.Oil_st)
-
-    imprt_v = sum(model.mwh[j,i]*58 for i in model.hh_periods for j in model.Imp_Viet)
-    imprt_t = sum(model.mwh[j,i]*59 for i in model.hh_periods for j in model.Imp_Thai)
-    import_hydro = sum(model.hydro_import[j,i]*47 for i in model.hh_periods for j in model.h_imports) 
-
-##    biomass_st = sum(model.mwh[j,i]*(model.heat_rate[j]*3.02 + model.var_om[j]) for i in model.hh_periods for j in model.Biomass_st)
-##    gas_cc = sum(model.mwh[j,i]*(model.heat_rate[j]*5.85 + model.var_om[j]) for i in model.hh_periods for j in model.Gas_cc)
-##    gas_st = sum(model.mwh[j,i]*(model.heat_rate[j]*5.85 + model.var_om[j]) for i in model.hh_periods for j in model.Gas_st)
-    
+    coal = sum(model.mwh[j,i]*(model.heat_rate[j]*5.0 + model.var_om[j]) for i in model.hh_periods for j in model.Coal)  
+    oil = sum(model.mwh[j,i]*(model.heat_rate[j]*6.5 + model.var_om[j]) for i in model.hh_periods for j in model.Oil)   
     slack = sum(model.mwh[j,i]*model.heat_rate[j]*1000 for i in model.hh_periods for j in model.Slack)
     
-    return fixed +starts +coal_st +oil_ic +oil_st +imprt_v +imprt_t +import_hydro +slack  ## +biomass_st +gas_cc +gas_st
+# add gas
+    
+    return fixed + starts + coal + oil + gas + slack  
 
 model.SystemCost = Objective(rule=SysCost, sense=minimize)
 
