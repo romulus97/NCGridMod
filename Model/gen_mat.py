@@ -8,19 +8,19 @@ Created on Sun Aug  9 00:47:29 2020
 import pandas as pd
 import numpy as np
 
-df = pd.read_excel('WECC generators.xlsx',sheet_name = 'data_genparams',header=0)
+df = pd.read_excel('ARPA generators.xlsx',sheet_name = 'data_genparams',header=0)
 gens = df.loc[:,'name']
 gen_nodes = df.loc[:,'node']
 unique_nodes = gen_nodes.unique()
 
 g_nodes = pd.read_excel('node_lists.xlsx', sheet_name = 'generation_only', header=0)##Generation nodes without demand
-g_nodes = list(g_nodes['Name'])
+g_nodes = list(g_nodes['Name_v_id'])
 
 d_nodes = pd.read_excel('node_lists.xlsx', sheet_name = 'demand_only',header=0) ##Transformers with demand
-d_nodes = list(d_nodes['Name'])
+d_nodes = list(d_nodes['Name_v_id'])
 
 t_nodes = pd.read_excel('node_lists.xlsx', sheet_name = 'neither',header=0) ##Transformers without demand
-t_nodes = list(t_nodes['Name'])
+t_nodes = list(t_nodes['Name_v_id'])
 
 all_nodes = g_nodes + t_nodes + d_nodes 
 
