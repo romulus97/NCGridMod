@@ -16,7 +16,7 @@ n1criterion = 0.75 ##maximum line-usage as a percent of line-capacity
 res_margin = 0.15  ##minimum reserve as a percent of system demand
 spin_margin = 0.50 ##minimum spinning reserve as a percent of total reserve
 
-data_name = 'WECC_data'
+data_name = 'MTS_data'
 
 
 ######=================================================########
@@ -36,7 +36,7 @@ df_trans_sus = pd.read_csv('trans_sus_mat.csv',header=0)
 df_trans_mw = pd.read_csv('trans_MW_mat.csv',header=0)
 
 ##hourly ts of dispatchable hydropower at each domestic dam
-df_hydro = pd.read_csv('data_hydro.csv',header=0)
+# df_hydro = pd.read_csv('data_hydro.csv',header=0)
 
 ####hourly ts of dispatchable solar-power at each plant
 ##df_solar = pd.read_csv('data_solar.csv',header=0)   
@@ -55,8 +55,8 @@ df_reserves = pd.DataFrame((df_load.iloc[:,:].sum(axis=1)*res_margin).values,col
 ######=================================================########
 
 ####======== Lists of Nodes of the Power System ========########
-df_hydro = pd.read_csv('data_hydro.csv',header=0)
-h_nodes = df_hydro.columns
+# df_hydro = pd.read_csv('data_hydro.csv',header=0)
+# h_nodes = df_hydro.columns
 
 g_nodes = pd.read_excel('node_lists.xlsx', sheet_name = 'generation_only', header=0)##Generation nodes without demand
 g_nodes = list(g_nodes['Name'])
@@ -123,15 +123,15 @@ with open(''+str(data_name)+'.dat', 'w') as f:
             f.write(unit_name + ' ')
     f.write(';\n\n')  
 
-    # Hydro
-    f.write('set Hydro :=\n')
-    # pull relevant generators
-    for gen in range(0,len(df_gen)):
-        if df_gen.loc[gen,'typ'] == 'hydro':
-            unit_name = df_gen.loc[gen,'name']
-            unit_name = unit_name.replace(' ','_')
-            f.write(unit_name + ' ')
-    f.write(';\n\n') 
+    # # Hydro
+    # f.write('set Hydro :=\n')
+    # # pull relevant generators
+    # for gen in range(0,len(df_gen)):
+    #     if df_gen.loc[gen,'typ'] == 'hydro':
+    #         unit_name = df_gen.loc[gen,'name']
+    #         unit_name = unit_name.replace(' ','_')
+    #         f.write(unit_name + ' ')
+    # f.write(';\n\n') 
 
     # Must run
     f.write('set Must :=\n')
@@ -153,19 +153,19 @@ with open(''+str(data_name)+'.dat', 'w') as f:
     # nodes
     f.write('set nodes :=\n')
     for z in all_nodes:
-        f.write(z + ' ')
+        f.write(str(z) + ' ')
     f.write(';\n\n')
     
     # sources
     f.write('set sources :=\n')
     for z in all_nodes:
-        f.write(z + ' ')
+        f.write(str(z) + ' ')
     f.write(';\n\n')
     
     # sinks
     f.write('set sinks :=\n')
     for z in all_nodes:
-        f.write(z + ' ')
+        f.write(str(z) + ' ')
     f.write(';\n\n')
     
     print('nodes')
@@ -223,7 +223,7 @@ with open(''+str(data_name)+'.dat', 'w') as f:
     for z in all_nodes:
         for x in all_nodes:
             x_index = all_nodes.index(x)
-            f.write(z + '\t' + x + '\t' + str(df_trans_mw.loc[x_index,z]) + '\t' + str(df_trans_sus.loc[x_index,z]) + '\n')
+            f.write(str(z) + '\t' + str(x) + '\t' + str(df_trans_mw.loc[x_index,str(z)]) + '\t' + str(df_trans_sus.loc[x_index,str(z)]) + '\n')
     f.write(';\n\n')
 
     print('trans paths')
@@ -238,21 +238,21 @@ with open(''+str(data_name)+'.dat', 'w') as f:
     for z in all_nodes:
         if z in d_nodes:
             for h in range(0,len(df_load)):
-                f.write(z + '\t' + str(h+1) + '\t' + str(df_load.loc[h,z]) + '\n')
+                f.write(str(z) + '\t' + str(h+1) + '\t' + str(df_load.loc[h,str(z)]) + '\n')
         else:
             for h in range(0,len(df_load)):
-                f.write(z + '\t' + str(h+1) + '\t' + str(0) + '\n')
+                f.write(str(z) + '\t' + str(h+1) + '\t' + str(0) + '\n')
 
     f.write(';\n\n')
 
-    # hydro (hourly)
-    f.write('param:' + '\t' + 'SimHydro:=' + '\n')
-    h_gens = df_hydro.columns      
-    for z in h_gens:
-        for h in range(0,len(df_hydro)): 
-        # for h in range(0,240):
-            f.write(z + '\t' + str(h+1) + '\t' + str(df_hydro.loc[h,z]) + '\n')
-    f.write(';\n\n')
+    # # hydro (hourly)
+    # f.write('param:' + '\t' + 'SimHydro:=' + '\n')
+    # h_gens = df_hydro.columns      
+    # for z in h_gens:
+    #     for h in range(0,len(df_hydro)): 
+    #     # for h in range(0,240):
+    #         f.write(z + '\t' + str(h+1) + '\t' + str(df_hydro.loc[h,z]) + '\n')
+    # f.write(';\n\n')
 
 ##    # solar (hourly)
 ##    f.write('param:' + '\t' + 'SimSolar:=' + '\n')      

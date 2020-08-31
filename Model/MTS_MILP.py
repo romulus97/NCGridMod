@@ -17,11 +17,12 @@ model.Coal = Set()
 model.Oil = Set()
 model.Gas = Set()
 model.Slack = Set()
-model.Hydro = Set()
+# model.Hydro = Set()
 model.Must = Set()
 
 #all generators
-model.Generators = model.Coal | model.Oil | model.Gas | model.Slack | model.Hydro | model.Must
+model.Generators = model.Coal | model.Oil | model.Gas | model.Slack | model.Must
+# model.Generators = model.Coal | model.Oil | model.Gas | model.Slack | model.Hydro | model.Must
 
 
 ###Allocate generators that will ensure minimum reserves
@@ -126,12 +127,12 @@ model.SimReserves = Param(model.SH_periods, within=NonNegativeReals)
 model.HorizonReserves = Param(model.hh_periods, within=NonNegativeReals,mutable=True)
 
 ##Variable resources over simulation period
-model.SimHydro = Param(model.Hydro, model.SH_periods, within=NonNegativeReals)
+# model.SimHydro = Param(model.Hydro, model.SH_periods, within=NonNegativeReals)
 ##model.SimSolar = Param(model.s_nodes, model.SH_periods, within=NonNegativeReals)
 ##model.SimWind = Param(model.w_nodes, model.SH_periods, within=NonNegativeReals)
 
 #Variable resources over horizon
-model.HorizonHydro = Param(model.Hydro,model.hh_periods,within=NonNegativeReals,mutable=True)
+# model.HorizonHydro = Param(model.Hydro,model.hh_periods,within=NonNegativeReals,mutable=True)
 ##model.HorizonSolar = Param(model.s_nodes,model.hh_periods,within=NonNegativeReals,mutable=True)
 ##model.HorizonWind = Param(model.w_nodes,model.hh_periods,within=NonNegativeReals,mutable=True)
 
@@ -185,11 +186,11 @@ def SysCost(model):
     coal = sum(model.mwh[j,i]*(model.heat_rate[j]*2 + model.var_om[j]) for i in model.hh_periods for j in model.Coal)  
     oil = sum(model.mwh[j,i]*(model.heat_rate[j]*10 + model.var_om[j]) for i in model.hh_periods for j in model.Oil)
     gas = sum(model.mwh[j,i]*(model.heat_rate[j]*4.5 + model.var_om[j]) for i in model.hh_periods for j in model.Gas)
-    hydro = sum(model.mwh[j,i]*(model.heat_rate[j] + model.var_om[j]) for i in model.hh_periods for j in model.Hydro)
+    # hydro = sum(model.mwh[j,i]*(model.heat_rate[j] + model.var_om[j]) for i in model.hh_periods for j in model.Hydro)
     must_run = sum(model.mwh[j,i]*(model.heat_rate[j] + model.var_om[j]) for i in model.hh_periods for j in model.Must)    
     slack = sum(model.mwh[j,i]*model.heat_rate[j]*1000 for i in model.hh_periods for j in model.Slack)
     
-    return coal +oil + gas + hydro + must_run + slack  ## fixed +starts 
+    return coal +oil + gas + must_run + slack  ## fixed +starts + hydro 
 
 model.SystemCost = Objective(rule=SysCost, sense=minimize)
 
@@ -259,9 +260,9 @@ model.MaxCap= Constraint(model.Generators,model.hh_periods,rule=MaxC)
 
 
 #Max capacity constraints on domestic hydropower 
-def HydroC(model,z,i):
-    return model.mwh[z,i] <= model.HorizonHydro[z,i]  
-model.HydroConstraint= Constraint(model.Hydro,model.hh_periods,rule=HydroC)
+# def HydroC(model,z,i):
+#     return model.mwh[z,i] <= model.HorizonHydro[z,i]  
+# model.HydroConstraint= Constraint(model.Hydro,model.hh_periods,rule=HydroC)
 
 ###Max capacity constraints on solar 
 ##def SolarC(model,z,i):
@@ -289,7 +290,7 @@ model.Node_Constraint = Constraint(model.nodes,model.hh_periods,rule=Nodal_Balan
 
 ####=== Reference Node =====#####
 def ref_node(model,i):
-    return model.vlt_angle['HOOVER_20',i] == 0
+    return model.vlt_angle['2415',i] == 0
 model.Ref_NodeConstraint= Constraint(model.hh_periods,rule= ref_node)
 
 

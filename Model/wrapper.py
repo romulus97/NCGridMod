@@ -6,7 +6,7 @@ Created on Tue Jun 20 22:14:07 2017
 """
 
 from pyomo.opt import SolverFactory
-from WECC_MILP import model as m1
+from MTS_MILP import model as m1
 from pyomo.core import Var
 from pyomo.core import Constraint
 from pyomo.core import Param
@@ -19,7 +19,7 @@ import pyomo.environ as pyo
 days =2
 # def sim(days):
 
-instance = m1.create_instance('WECC_data.dat')
+instance = m1.create_instance('MTS_data.dat')
 opt = SolverFactory("cplex")
 
 H = instance.HorizonHours
@@ -46,11 +46,11 @@ for day in range(1,days):
             instance.HorizonDemand[z,i] = instance.SimDemand[z,(day-1)*24+i]
             instance.HorizonReserves[i] = instance.SimReserves[(day-1)*24+i]
 
-    for z in instance.Hydro:
-    #load Hydropower time series data
+    # for z in instance.Hydro:
+    # #load Hydropower time series data
         
-        for i in K:
-            instance.HorizonHydro[z,i] = instance.SimHydro[z,(day-1)*24+i]
+    #     for i in K:
+    #         instance.HorizonHydro[z,i] = instance.SimHydro[z,(day-1)*24+i]
     
     # for z in instance.s_nodes:
     # #load Solar time series data
