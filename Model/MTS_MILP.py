@@ -126,6 +126,10 @@ model.HorizonDemand = Param(model.nodes*model.hh_periods,within=NonNegativeReals
 model.SimReserves = Param(model.SH_periods, within=NonNegativeReals)
 model.HorizonReserves = Param(model.hh_periods, within=NonNegativeReals,mutable=True)
 
+#Horizon must run generation
+model.HorizonMustRun = Param(model.nodes*model.hh_periods,within=NonNegativeReals,mutable=True)
+
+
 ##Variable resources over simulation period
 # model.SimHydro = Param(model.Hydro, model.SH_periods, within=NonNegativeReals)
 ##model.SimSolar = Param(model.s_nodes, model.SH_periods, within=NonNegativeReals)
@@ -188,10 +192,10 @@ def SysCost(model):
     oil = sum(model.mwh[j,i]*(model.heat_rate[j]*10 + model.var_om[j]) for i in model.hh_periods for j in model.Oil)
     gas = sum(model.mwh[j,i]*(model.heat_rate[j]*4.5 + model.var_om[j]) for i in model.hh_periods for j in model.Gas)
     # hydro = sum(model.mwh[j,i]*(model.heat_rate[j] + model.var_om[j]) for i in model.hh_periods for j in model.Hydro)
-    must_run = sum(model.mwh[j,i]*(model.heat_rate[j] + model.var_om[j]) for i in model.hh_periods for j in model.Must)    
+    # must_run = sum(model.mwh[j,i]*(model.heat_rate[j] + model.var_om[j]) for i in model.hh_periods for j in model.Must)    
     slack = sum(model.mwh[j,i]*model.heat_rate[j]*1000 for i in model.hh_periods for j in model.Slack)
     
-    return coal +oil + gas + must_run + slack  ## fixed +starts + hydro 
+    return coal +oil + gas + slack  ## fixed +starts + hydro + must_run
 
 model.SystemCost = Objective(rule=SysCost, sense=minimize)
 
@@ -287,7 +291,7 @@ def Nodal_Balance(model,z,i):
     exports = sum(model.flow[z,k,i] for k in model.sinks)
     # power_flow = 100*sum(model.linesus[z,k] * (model.vlt_angle[z,i] - model.vlt_angle[k,i]) for k in model.sinks)   
     # power_flow = 100*sum(model.linesus[z,k] * (model.vlt_angle[z,i] - model.vlt_angle[k,i]) for k in model.sinks)   
-    gen = sum(model.mwh[j,i]*model.gen_mat[j,z] for j in model.Generators)    
+    gen = sum(model.mwh[j,i]*model.gen_mat[j,z] + model.HorizonMustRun[z,i] for j in model.Generators)    
     # return power_flow + demand <= (1-model.TransLoss)*gen
     return exports + demand <= (1-model.TransLoss)*gen - imports
 model.Node_Constraint = Constraint(model.nodes,model.hh_periods,rule=Nodal_Balance)

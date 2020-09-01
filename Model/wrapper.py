@@ -36,6 +36,8 @@ mwh=[]
 vlt_angle=[]
 
 df_generators = pd.read_csv('data_genparams.csv',header=0)
+df_must = pd.read_csv('must_run.csv',header=0)
+must_nodes = list(df_must.columns)
 
 #max here can be (1,365)
 for day in range(1,days):
@@ -45,7 +47,15 @@ for day in range(1,days):
         for i in K:
             instance.HorizonDemand[z,i] = instance.SimDemand[z,(day-1)*24+i]
             instance.HorizonReserves[i] = instance.SimReserves[(day-1)*24+i]
-
+            
+            if z in must_nodes:
+            
+                instance.HorizonMustRun[z,i] = df_must.loc[0,z]
+            
+            else:
+            
+                instance.HorizonMustRun[z,i] = 0
+            
     # for z in instance.Hydro:
     # #load Hydropower time series data
         
