@@ -45,7 +45,7 @@ model.sinks = Set(within=model.nodes)
 #####==== Parameters for dispatchable resources ===####
 
 #Generator type
-model.typ = Param(model.Generators)
+model.typ = Param(model.Generators,within=Any)
 
 #Node name
 model.node = Param(model.Generators)
@@ -140,7 +140,7 @@ model.HorizonReserves = Param(model.hh_periods, within=NonNegativeReals,mutable=
 model.ini_on = Param(model.Generators, within=Binary, initialize=0,mutable=True) 
 model.ini_mwh = Param(model.Generators,initialize=0,mutable=True)
 
-model.gen_mat = Param(model.Generators,model.nodes,within=Binary)
+model.gen_mat = Param(model.Generators,model.nodes,within=NonNegativeReals)
 
 
 ######=================================================########
@@ -170,7 +170,8 @@ model.mwh = Var(model.Generators,model.HH_periods, within=NonNegativeReals,initi
 ##model.wind = Var(model.w_nodes,model.HH_periods,within=NonNegativeReals)
 
 #Voltage angle at each node in each hour
-model.vlt_angle = Var(model.nodes,model.HH_periods,bounds = (-3.14,3.14), initialize=0)
+# model.vlt_angle = Var(model.nodes,model.HH_periods,bounds = (-3.14,3.14), initialize=0)
+model.flow = Var(model.sources*model.sinks*model.HH_periods, within=NonNegativeReals)
 
 
 
@@ -282,32 +283,40 @@ model.MaxCap= Constraint(model.Generators,model.hh_periods,rule=MaxC)
 #########======================== Power balance in sub-station nodes 
 def Nodal_Balance(model,z,i):
     demand = model.HorizonDemand[z,i]
-    power_flow = 100*sum(model.linesus[z,k] * (model.vlt_angle[z,i] - model.vlt_angle[k,i]) for k in model.sinks)   
+    imports = sum(model.flow[s,z,i] for s in model.sources)
+    exports = sum(model.flow[z,k,i] for k in model.sinks)
+    # power_flow = 100*sum(model.linesus[z,k] * (model.vlt_angle[z,i] - model.vlt_angle[k,i]) for k in model.sinks)   
+    # power_flow = 100*sum(model.linesus[z,k] * (model.vlt_angle[z,i] - model.vlt_angle[k,i]) for k in model.sinks)   
     gen = sum(model.mwh[j,i]*model.gen_mat[j,z] for j in model.Generators)    
-    return power_flow + demand <= (1 - model.TransLoss)*gen
-
+    # return power_flow + demand <= (1-model.TransLoss)*gen
+    return exports + demand <= (1-model.TransLoss)*gen - imports
 model.Node_Constraint = Constraint(model.nodes,model.hh_periods,rule=Nodal_Balance)
 
 ####=== Reference Node =====#####
-def ref_node(model,i):
-    return model.vlt_angle['2415',i] == 0
-model.Ref_NodeConstraint= Constraint(model.hh_periods,rule= ref_node)
+# def ref_node(model,i):
+#     return model.vlt_angle[2415,i] == 0
+# model.Ref_NodeConstraint= Constraint(model.hh_periods,rule= ref_node)
 
 
 ######========== Transmission Capacity Constraints (N-1 Criterion) =========#############
-def MaxLine(model,s,k,i):
-    if model.linemva[s,k] > 0:
-        return (model.n1criterion) * model.linemva[s,k] >= model.linesus[s,k] * (model.vlt_angle[s,i] - model.vlt_angle[k,i])
-    else:
-        return Constraint.Skip
-model.MaxLineConstraint= Constraint(model.sources,model.sinks,model.hh_periods,rule=MaxLine)
 
-def MinLine(model,s,k,i):
-    if model.linemva[s,k] > 0:
-        return (-model.n1criterion) * model.linemva[s,k] <= model.linesus[s,k] * (model.vlt_angle[s,i] - model.vlt_angle[k,i])
-    else:
-        return Constraint.Skip
-model.MinLineConstraint= Constraint(model.sources,model.sinks,model.hh_periods,rule=MinLine)
+def FlowC(model,s,k,i):
+    return model.flow[s,k,i] <= model.linemva[s,k]
+model.FlowConstraint= Constraint(model.sources,model.sinks,model.hh_periods,rule=FlowC)
+
+# def MaxLine(model,s,k,i):
+#     if model.linemva[s,k] > 0:
+#         return (model.n1criterion) * model.linemva[s,k] >= model.linesus[s,k] * (model.vlt_angle[s,i] - model.vlt_angle[k,i])
+#     else:
+#         return Constraint.Skip
+# model.MaxLineConstraint= Constraint(model.sources,model.sinks,model.hh_periods,rule=MaxLine)
+
+# def MinLine(model,s,k,i):
+#     if model.linemva[s,k] > 0:
+#         return (-model.n1criterion) * model.linemva[s,k] <= model.linesus[s,k] * (model.vlt_angle[s,i] - model.vlt_angle[k,i])
+#     else:
+#         return Constraint.Skip
+# model.MinLineConstraint= Constraint(model.sources,model.sinks,model.hh_periods,rule=MinLine)
 
 
 
