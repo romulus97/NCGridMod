@@ -301,7 +301,7 @@ model.Node_Constraint = Constraint(model.nodes,model.hh_periods,rule=Nodal_Balan
 ######========== Transmission Capacity Constraints (N-1 Criterion) =========#############
 
 def FlowC(model,s,k,i):
-    return model.flow[s,k,i] <= model.linemva[s,k]
+    return model.flow[s,k,i]*model.n1criterion <= model.linemva[s,k]
 model.FlowConstraint= Constraint(model.sources,model.sinks,model.hh_periods,rule=FlowC)
 
 # def MaxLine(model,s,k,i):
