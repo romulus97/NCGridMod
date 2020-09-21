@@ -11,23 +11,11 @@ model = AbstractModel()
 model.Coal = Set()
 model.Oil = Set()
 model.Gas = Set()
-<<<<<<< Updated upstream:Model/MTS_MILP.py
-# model.Slack = Set()
 model.Hydro = Set()
 model.Must = Set()
 
-#all generators TOOK SLACK OUT HERE
-model.Generators = model.Coal | model.Oil | model.Gas | model.Hydro | model.Must
-=======
-model.Slack = Set()
-# model.Hydro = Set()
-model.Must = Set()
-
 #all generators
-model.Generators = model.Coal | model.Oil | model.Gas | model.Slack | model.Must
-# model.Generators = model.Coal | model.Oil | model.Gas | model.Slack | model.Hydro | model.Must
->>>>>>> Stashed changes:Model/WECC_MILP.py
-
+model.Generators = model.Coal | model.Oil | model.Gas | model.Hydro | model.Must
 
 ### allocate generators that will ensure minimum reserves
 model.ResGenerators = model.Coal | model.Oil | model.Gas
@@ -171,19 +159,10 @@ def SysCost(model):
     coal = sum(model.mwh[j,i]*(model.heat_rate[j]*2 + model.var_om[j]) for i in model.hh_periods for j in model.Coal)  
     oil = sum(model.mwh[j,i]*(model.heat_rate[j]*10 + model.var_om[j]) for i in model.hh_periods for j in model.Oil)
     gas = sum(model.mwh[j,i]*(model.heat_rate[j]*4.5 + model.var_om[j]) for i in model.hh_periods for j in model.Gas)
-<<<<<<< Updated upstream:Model/MTS_MILP.py
-    hydro = sum(model.mwh[j,i]*.01 + model.var_om[j] for i in model.hh_periods for j in model.Hydro)
     must_run = sum(model.mwh[j,i]*.01 + model.var_om[j] for i in model.hh_periods for j in model.Must)    
     slack = sum(model.S[z,i]*100000 for i in model.hh_periods for z in model.buses)
 
-    return coal +oil + gas + hydro + must_run + slack #+ fixed + starts 
-=======
-    # hydro = sum(model.mwh[j,i]*(model.heat_rate[j] + model.var_om[j]) for i in model.hh_periods for j in model.Hydro)
-    must_run = sum(model.mwh[j,i]*(model.heat_rate[j] + model.var_om[j]) for i in model.hh_periods for j in model.Must)    
-    slack = sum(model.mwh[j,i]*model.heat_rate[j]*1000 for i in model.hh_periods for j in model.Slack)
-    
-    return coal +oil + gas + must_run + slack  ## fixed +starts + hydro 
->>>>>>> Stashed changes:Model/WECC_MILP.py
+    return coal +oil + gas + must_run  + slack
 
 model.SystemCost = Objective(rule=SysCost, sense=minimize)
 
@@ -273,7 +252,6 @@ model.MaxCap= Constraint(model.Generators,model.hh_periods,rule=MaxC)
 ######=================================================########
 
 def Nodal_Balance(model,z,i):
-<<<<<<< Updated upstream:Model/MTS_MILP.py
     power_flow = sum(model.Flow[l,i]*model.LinetoBusMap[l,z] for l in model.lines)   
     gen = sum(model.mwh[j,i]*model.BustoUnitMap[j,z] for j in model.Generators)    
     slack = model.S[z,i]
@@ -286,7 +264,7 @@ def Flow_line(model,l,i):
 model.FlowL_Constraint = Constraint(model.lines,model.hh_periods,rule=Flow_line)
 
 def Theta_bus(model,i):
-        return model.Theta['6682',i] == 0
+        return model.Theta['n_6682',i] == 0
 model.ThetaB_Constraint = Constraint(model.hh_periods,rule=Theta_bus)
 
 def FlowUP_line(model,l,i):
@@ -296,37 +274,6 @@ model.FlowU_Constraint = Constraint(model.lines,model.hh_periods,rule=FlowUP_lin
 def FlowLow_line(model,l,i):
     return  -1*model.Flow[l,i] <= model.FlowLim[l]
 model.FlowLL_Constraint = Constraint(model.lines,model.hh_periods,rule=FlowLow_line)
-=======
-    demand = model.HorizonDemand[z,i]
-    power_flow = 100*sum(model.linesus[z,k] * (model.vlt_angle[z,i] - model.vlt_angle[k,i]) for k in model.sinks)   
-    gen = sum(model.mwh[j,i]*model.gen_mat[j,z] for j in model.Generators)    
-    return power_flow + demand <= (1 - model.TransLoss)*gen
-
-model.Node_Constraint = Constraint(model.nodes,model.hh_periods,rule=Nodal_Balance)
-
-####=== Reference Node =====#####
-def ref_node(model,i):
-    return model.vlt_angle['2415',i] == 0
-model.Ref_NodeConstraint= Constraint(model.hh_periods,rule= ref_node)
-
-
-######========== Transmission Capacity Constraints (N-1 Criterion) =========#############
-def MaxLine(model,s,k,i):
-    if model.linemva[s,k] > 0:
-        return (model.n1criterion) * model.linemva[s,k] >= model.linesus[s,k] * (model.vlt_angle[s,i] - model.vlt_angle[k,i])
-    else:
-        return Constraint.Skip
-model.MaxLineConstraint= Constraint(model.sources,model.sinks,model.hh_periods,rule=MaxLine)
-
-def MinLine(model,s,k,i):
-    if model.linemva[s,k] > 0:
-        return (-model.n1criterion) * model.linemva[s,k] <= model.linesus[s,k] * (model.vlt_angle[s,i] - model.vlt_angle[k,i])
-    else:
-        return Constraint.Skip
-model.MinLineConstraint= Constraint(model.sources,model.sinks,model.hh_periods,rule=MinLine)
-
-
->>>>>>> Stashed changes:Model/WECC_MILP.py
 
 ######=================================================########
 ######               Segment B.13                      ########
