@@ -33,7 +33,7 @@ lines = list(df_line_params['line'])
 
 
 ##hourly ts of dispatchable hydropower at each domestic dam
-# df_hydro = pd.read_csv('data_hydro.csv',header=0)
+df_hydro = pd.read_csv('data_hydro.csv',header=0)
 
 ####hourly ts of dispatchable solar-power at each plant
 ##df_solar = pd.read_csv('data_solar.csv',header=0)   
@@ -52,8 +52,8 @@ df_reserves = pd.DataFrame((df_load.iloc[:,:].sum(axis=1)*res_margin).values,col
 ######=================================================########
 
 ####======== Lists of Nodes of the Power System ========########
-# df_hydro = pd.read_csv('data_hydro.csv',header=0)
-# h_nodes = df_hydro.columns
+df_hydro = pd.read_csv('data_hydro.csv',header=0)
+h_nodes = df_hydro.columns
 
 g_nodes = pd.read_excel('node_lists.xlsx', sheet_name = 'generation_only', header=0)##Generation nodes without demand
 g_nodes = list(g_nodes['Name'])
@@ -64,9 +64,9 @@ d_nodes = list(d_nodes['Name'])
 t_nodes = pd.read_excel('node_lists.xlsx', sheet_name = 'neither',header=0) ##Transformers without demand
 t_nodes = list(t_nodes['Name'])
 
-all_nodes = g_nodes + t_nodes + d_nodes 
+all_nodes = g_nodes + t_nodes + d_nodes
 for i in range(0,len(all_nodes)):
-    all_nodes[i] = 'n_' + str(all_nodes[i])
+    all_nodes[i] = 'n_' + str(all_nodes[i]) 
 
 
 ######=================================================########
@@ -232,7 +232,7 @@ with open(''+str(data_name)+'.dat', 'w') as f:
     for z in all_nodes:
         if z in d_nodes:
             for h in range(0,len(df_load)):
-                f.write(z + '\t' + str(h+1) + '\t' + str(df_load.loc[h,str(z)]) + '\n')
+                f.write(z + '\t' + str(h+1) + '\t' + str(df_load.loc[h,z]) + '\n')
         else:
             for h in range(0,len(df_load)):
                 f.write(z + '\t' + str(h+1) + '\t' + str(0) + '\n')

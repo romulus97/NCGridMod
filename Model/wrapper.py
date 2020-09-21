@@ -56,6 +56,7 @@ for day in range(1,days):
             
                 instance.HorizonMustRun[z,i] = 0
             
+
     # for z in instance.Hydro:
     # #load Hydropower time series data
         
