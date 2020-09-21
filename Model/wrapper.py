@@ -16,7 +16,7 @@ import numpy as np
 from datetime import datetime
 import pyomo.environ as pyo
 
-days =2
+days = 4
 # def sim(days):
 
 instance = m1.create_instance('MTS_data.dat')
@@ -93,7 +93,7 @@ for day in range(1,days):
         #             if index[0] in instance.w_nodes:
         #                 wind.append((index[0],index[1]+((day-1)*24),varobject[index].value))   
         
-        if a=='vlt_angle':
+        if a=='Theta':
             for index in varobject:
                 if int(index[1]>0 and index[1]<25):
                     if index[0] in instance.nodes:

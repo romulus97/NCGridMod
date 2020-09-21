@@ -9,6 +9,9 @@ import pandas as pd
 import numpy as np
 
 df = pd.read_csv('data_genparams.csv',header=0)
+for i in range(0,len(df)):
+    df.loc[i,'node'] = 'n_' + str(df.loc[i,'node'])
+    
 gens = df.loc[:,'name']
 gen_nodes = df.loc[:,'node']
 unique_nodes = gen_nodes.unique()
@@ -23,6 +26,9 @@ t_nodes = pd.read_excel('node_lists.xlsx', sheet_name = 'neither',header=0) ##Tr
 t_nodes = list(t_nodes['Name'])
 
 all_nodes = g_nodes + t_nodes + d_nodes 
+for i in range(0,len(all_nodes)):
+    all_nodes[i] = 'n_' + str(all_nodes[i])
+    
 
 A = np.zeros((len(gens),len(all_nodes)))
 

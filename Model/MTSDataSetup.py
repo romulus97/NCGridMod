@@ -3,7 +3,6 @@ import csv
 import pandas as pd
 import numpy as np
 
-
 ######=================================================########
 ######               Segment A.1                       ########
 ######=================================================########
@@ -26,14 +25,12 @@ data_name = 'MTS_data'
 #read parameters for dispatchable resources
 df_gen = pd.read_csv('data_genparams.csv',header=0)
 
-#read gen_matrix assignments
-df_gen_mat = pd.read_csv('gen_mat.csv',header=0)
+#read generation and transmission data
+df_bustounitmap = pd.read_csv('gen_mat.csv',header=0)
+df_linetobusmap = pd.read_csv('line_to_bus.csv',header=0)
+df_line_params = pd.read_csv('line_params.csv',header=0)
+lines = list(df_line_params['line'])
 
-#read gen_matrix assignments
-df_trans_sus = pd.read_csv('trans_sus_mat.csv',header=0)
-
-#read gen_matrix assignments
-df_trans_mw = pd.read_csv('trans_MW_mat.csv',header=0)
 
 ##hourly ts of dispatchable hydropower at each domestic dam
 # df_hydro = pd.read_csv('data_hydro.csv',header=0)
@@ -68,6 +65,8 @@ t_nodes = pd.read_excel('node_lists.xlsx', sheet_name = 'neither',header=0) ##Tr
 t_nodes = list(t_nodes['Name'])
 
 all_nodes = g_nodes + t_nodes + d_nodes 
+for i in range(0,len(all_nodes)):
+    all_nodes[i] = 'n_' + str(all_nodes[i])
 
 
 ######=================================================########
@@ -113,17 +112,17 @@ with open(''+str(data_name)+'.dat', 'w') as f:
             f.write(unit_name + ' ')        
     f.write(';\n\n')  
 
-    # Slack
-    f.write('set Slack :=\n')
-    # pull relevant generators
-    for gen in range(0,len(df_gen)):
-        if df_gen.loc[gen,'typ'] == 'slack':
-            unit_name = df_gen.loc[gen,'name']
-            unit_name = unit_name.replace(' ','_')
-            f.write(unit_name + ' ')
-    f.write(';\n\n')  
+    # # Slack
+    # f.write('set Slack :=\n')
+    # # pull relevant generators
+    # for gen in range(0,len(df_gen)):
+    #     if df_gen.loc[gen,'typ'] == 'slack':
+    #         unit_name = df_gen.loc[gen,'name']
+    #         unit_name = unit_name.replace(' ','_')
+    #         f.write(unit_name + ' ')
+    # f.write(';\n\n')  
 
-    # # Hydro
+    # Hydro
     # f.write('set Hydro :=\n')
     # # pull relevant generators
     # for gen in range(0,len(df_gen)):
@@ -151,24 +150,20 @@ with open(''+str(data_name)+'.dat', 'w') as f:
 
 ######Set nodes, sources and sinks
     # nodes
-    f.write('set nodes :=\n')
+    f.write('set buses :=\n')
     for z in all_nodes:
-        f.write(str(z) + ' ')
-    f.write(';\n\n')
-    
-    # sources
-    f.write('set sources :=\n')
-    for z in all_nodes:
-        f.write(str(z) + ' ')
-    f.write(';\n\n')
-    
-    # sinks
-    f.write('set sinks :=\n')
-    for z in all_nodes:
-        f.write(str(z) + ' ')
+        f.write(z + ' ')
     f.write(';\n\n')
     
     print('nodes')
+    
+    # lines
+    f.write('set lines :=\n')
+    for z in lines:
+        f.write(z + ' ')
+    f.write(';\n\n')
+    
+    print('lines')
     
 ######=================================================########
 ######               Segment A.6                       ########
@@ -219,11 +214,10 @@ with open(''+str(data_name)+'.dat', 'w') as f:
 ######=================================================########
 
 ####### create parameter matrix for transmission paths (source and sink connections)
-    f.write('param:' + '\t' + 'linemva' + '\t' +'linesus :=' + '\n')
-    for z in all_nodes:
-        for x in all_nodes:
-            x_index = all_nodes.index(x)
-            f.write(str(z) + '\t' + str(x) + '\t' + str(df_trans_mw.loc[x_index,str(z)]) + '\t' + str(df_trans_sus.loc[x_index,str(z)]) + '\n')
+    f.write('param:' + '\t' + 'FlowLim' + '\t' +'Reactance :=' + '\n')
+    for z in lines:
+        idx = lines.index(z)
+        f.write(z + '\t' + str(df_line_params.loc[idx,'limit']) + '\t' + str(df_line_params.loc[idx,'reactance']) + '\n')
     f.write(';\n\n')
 
     print('trans paths')
@@ -238,10 +232,10 @@ with open(''+str(data_name)+'.dat', 'w') as f:
     for z in all_nodes:
         if z in d_nodes:
             for h in range(0,len(df_load)):
-                f.write(str(z) + '\t' + str(h+1) + '\t' + str(df_load.loc[h,str(z)]) + '\n')
+                f.write(z + '\t' + str(h+1) + '\t' + str(df_load.loc[h,str(z)]) + '\n')
         else:
             for h in range(0,len(df_load)):
-                f.write(str(z) + '\t' + str(h+1) + '\t' + str(0) + '\n')
+                f.write(z + '\t' + str(h+1) + '\t' + str(0) + '\n')
 
     f.write(';\n\n')
 
@@ -278,14 +272,33 @@ with open(''+str(data_name)+'.dat', 'w') as f:
     print('time series')
     
 
-###### Gen matrix
+###### Maps
     
-    f.write('param' + '\t' + 'gen_mat:=' + '\n')
-    for i in range(0,len(df_gen)):
-        for j in df_gen_mat.columns:
-            if j!= 'name':
-                f.write(df_gen.loc[i,'name'] + '\t' + j + '\t' + str(df_gen_mat.loc[i,j]) + '\n')
+    f.write('param BustoUnitMap:' +'\n')
+    f.write('\t')
+
+    for j in df_bustounitmap.columns:
+        if j!= 'name':
+            f.write(j + '\t')
+    f.write(':=' + '\n')
+    for i in range(0,len(df_bustounitmap)):   
+        for j in df_bustounitmap.columns:
+            f.write(str(df_bustounitmap.loc[i,j]) + '\t')
+        f.write('\n')
     f.write(';\n\n')
 
+
+    f.write('param LinetoBusMap:' +'\n')
+    f.write('\t')
+
+    for j in df_linetobusmap.columns:
+        if j!= 'line':
+            f.write(j + '\t')
+    f.write(':=' + '\n')
+    for i in range(0,len(df_linetobusmap)):   
+        for j in df_linetobusmap.columns:
+            f.write(str(df_linetobusmap.loc[i,j]) + '\t')
+        f.write('\n')
+    f.write(';\n\n')
 
 print ('Complete:',data_name)
