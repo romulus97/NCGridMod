@@ -34,6 +34,7 @@ mwh=[]
 # srsv=[]
 # nrsv=[]
 vlt_angle=[]
+slack = []
 
 df_generators = pd.read_csv('data_genparams.csv',header=0)
 df_must = pd.read_csv('must_run.csv',header=0)
@@ -42,21 +43,12 @@ must_nodes = list(df_must.columns)
 #max here can be (1,365)
 for day in range(1,days):
     
-    for z in instance.nodes:
+    for z in instance.buses:
     #load Demand and Reserve time series data
         for i in K:
             instance.HorizonDemand[z,i] = instance.SimDemand[z,(day-1)*24+i]
-            instance.HorizonReserves[i] = instance.SimReserves[(day-1)*24+i]
+            # instance.HorizonReserves[i] = instance.SimReserves[(day-1)*24+i]
             
-            if z in must_nodes:
-            
-                instance.HorizonMustRun[z,i] = df_must.loc[0,z]
-            
-            else:
-            
-                instance.HorizonMustRun[z,i] = 0
-            
-
     # for z in instance.Hydro:
     # #load Hydropower time series data
         
@@ -97,8 +89,15 @@ for day in range(1,days):
         if a=='Theta':
             for index in varobject:
                 if int(index[1]>0 and index[1]<25):
-                    if index[0] in instance.nodes:
+                    if index[0] in instance.buses:
                         vlt_angle.append((index[0],index[1]+((day-1)*24),varobject[index].value))
+
+        if a=='S':
+            for index in varobject:
+                if int(index[1]>0 and index[1]<25):
+                    if index[0] in instance.buses:
+                        slack.append((index[0],index[1]+((day-1)*24),varobject[index].value))
+                        
                         
         if a=='mwh':
             for index in varobject:
@@ -131,6 +130,7 @@ for day in range(1,days):
 # wind_pd=pd.DataFrame(wind,columns=('Node','Time','Value'))
 vlt_angle_pd=pd.DataFrame(vlt_angle,columns=('Node','Time','Value'))
 mwh_pd=pd.DataFrame(mwh,columns=('Generator','Time','Value'))
+s_pd=pd.DataFrame(slack,columns=('Node','Time','Value'))
 # on_pd=pd.DataFrame(on,columns=('Generator','Time','Value'))
 # switch_pd=pd.DataFrame(switch,columns=('Generator','Time','Value'))
 # srsv_pd=pd.DataFrame(srsv,columns=('Generator','Time','Value'))
@@ -138,6 +138,7 @@ mwh_pd=pd.DataFrame(mwh,columns=('Generator','Time','Value'))
 
 #to save outputs
 mwh_pd.to_csv('mwh.csv')
+s_pd.to_csv('slack.csv')
 # solar_pd.to_csv('solar.csv')
 # wind_pd.to_csv('wind.csv')
 vlt_angle_pd.to_csv('vlt_angle.csv')

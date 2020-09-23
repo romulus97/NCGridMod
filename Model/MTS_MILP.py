@@ -11,11 +11,10 @@ model = AbstractModel()
 model.Coal = Set()
 model.Oil = Set()
 model.Gas = Set()
-model.Hydro = Set()
 model.Must = Set()
 
 #all generators
-model.Generators = model.Coal | model.Oil | model.Gas | model.Hydro | model.Must
+model.Generators = model.Coal | model.Oil | model.Gas | model.Must
 
 ### allocate generators that will ensure minimum reserves
 model.ResGenerators = model.Coal | model.Oil | model.Gas
@@ -100,8 +99,8 @@ model.SimDemand = Param(model.buses*model.SH_periods, within=NonNegativeReals)
 model.HorizonDemand = Param(model.buses*model.hh_periods,within=NonNegativeReals,mutable=True)
 
 #Reserve for the entire system
-model.SimReserves = Param(model.SH_periods, within=NonNegativeReals)
-model.HorizonReserves = Param(model.hh_periods, within=NonNegativeReals,mutable=True)
+# model.SimReserves = Param(model.SH_periods, within=NonNegativeReals)
+# model.HorizonReserves = Param(model.hh_periods, within=NonNegativeReals,mutable=True)
 
 ##Variable resources over simulation period
 # model.SimHydro = Param(model.Hydro, model.SH_periods, within=NonNegativeReals)
@@ -162,7 +161,7 @@ def SysCost(model):
     must_run = sum(model.mwh[j,i]*.01 + model.var_om[j] for i in model.hh_periods for j in model.Must)    
     slack = sum(model.S[z,i]*100000 for i in model.hh_periods for z in model.buses)
 
-    return coal +oil + gas + must_run  + slack
+    return coal + oil + gas + must_run  + slack
 
 model.SystemCost = Objective(rule=SysCost, sense=minimize)
 

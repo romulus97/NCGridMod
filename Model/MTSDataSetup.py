@@ -32,8 +32,8 @@ df_line_params = pd.read_csv('line_params.csv',header=0)
 lines = list(df_line_params['line'])
 
 
-##hourly ts of dispatchable hydropower at each domestic dam
-df_hydro = pd.read_csv('data_hydro.csv',header=0)
+# ##hourly ts of dispatchable hydropower at each domestic dam
+# df_hydro = pd.read_csv('data_hydro.csv',header=0)
 
 ####hourly ts of dispatchable solar-power at each plant
 ##df_solar = pd.read_csv('data_solar.csv',header=0)   
@@ -42,7 +42,16 @@ df_hydro = pd.read_csv('data_hydro.csv',header=0)
 ##df_wind = pd.read_csv('data_wind.csv',header=0)
 
 ##hourly ts of load at substation-level
-df_load = pd.read_csv('data_load.csv',header=0) 
+df_load = pd.read_csv('data_load.csv',header=0)
+h = df_load.columns
+h2 = []
+for i in range(0,len(h)):
+    if i <= 3:
+        h2.append(h[i])
+    if i > 3:
+        n = 'n_' + h[i]
+        h2.append(n)
+df_load.columns = h2
 
 #hourly minimum reserve as a function of load (e.g., 15% of current load)
 df_reserves = pd.DataFrame((df_load.iloc[:,:].sum(axis=1)*res_margin).values,columns=['Reserve'])
@@ -52,9 +61,6 @@ df_reserves = pd.DataFrame((df_load.iloc[:,:].sum(axis=1)*res_margin).values,col
 ######=================================================########
 
 ####======== Lists of Nodes of the Power System ========########
-df_hydro = pd.read_csv('data_hydro.csv',header=0)
-h_nodes = df_hydro.columns
-
 g_nodes = pd.read_excel('node_lists.xlsx', sheet_name = 'generation_only', header=0)##Generation nodes without demand
 g_nodes = list(g_nodes['Name'])
 
@@ -67,6 +73,9 @@ t_nodes = list(t_nodes['Name'])
 all_nodes = g_nodes + t_nodes + d_nodes
 for i in range(0,len(all_nodes)):
     all_nodes[i] = 'n_' + str(all_nodes[i]) 
+
+for i in range(0,len(d_nodes)):
+    d_nodes[i] = 'n_' + str(d_nodes[i]) 
 
 
 ######=================================================########
@@ -262,14 +271,14 @@ with open(''+str(data_name)+'.dat', 'w') as f:
 ##            f.write(z + '\t' + str(h+1) + '\t' + str(df_wind.loc[h,z]) + '\n')
 ##    f.write(';\n\n')
     
-###### System-wide hourly reserve
-    f.write('param' + '\t' + 'SimReserves:=' + '\n')
-    # for h in range(0,240):
-    for h in range(0,len(df_load)):
-            f.write(str(h+1) + '\t' + str(df_reserves.loc[h,'Reserve']) + '\n')
-    f.write(';\n\n')
+# ###### System-wide hourly reserve
+#     f.write('param' + '\t' + 'SimReserves:=' + '\n')
+#     # for h in range(0,240):
+#     for h in range(0,len(df_load)):
+#             f.write(str(h+1) + '\t' + str(df_reserves.loc[h,'Reserve']) + '\n')
+#     f.write(';\n\n')
     
-    print('time series')
+#     print('time series')
     
 
 ###### Maps
