@@ -74,8 +74,6 @@ all_nodes = g_nodes + t_nodes + d_nodes
 for i in range(0,len(all_nodes)):
     all_nodes[i] = 'n_' + str(all_nodes[i]) 
 
-for i in range(0,len(d_nodes)):
-    d_nodes[i] = 'n_' + str(d_nodes[i]) 
 
 
 ######=================================================########
@@ -185,12 +183,12 @@ with open(''+str(data_name)+'.dat', 'w') as f:
     f.write('\n\n')   
     f.write('param HorizonHours := %d;' % HorizonHours)
     f.write('\n\n')
-    f.write('param TransLoss := %0.3f;' % TransLoss)
-    f.write('\n\n')
-    f.write('param n1criterion := %0.3f;' % n1criterion)
-    f.write('\n\n')
-    f.write('param spin_margin := %0.3f;' % spin_margin)
-    f.write('\n\n')
+    # f.write('param TransLoss := %0.3f;' % TransLoss)
+    # f.write('\n\n')
+    # f.write('param n1criterion := %0.3f;' % n1criterion)
+    # f.write('\n\n')
+    # f.write('param spin_margin := %0.3f;' % spin_margin)
+    # f.write('\n\n')
 
 
 ######=================================================########
@@ -239,7 +237,7 @@ with open(''+str(data_name)+'.dat', 'w') as f:
     # load (hourly)
     f.write('param:' + '\t' + 'SimDemand:=' + '\n')      
     for z in all_nodes:
-        if z in d_nodes:
+        if z in h2:
             for h in range(0,len(df_load)):
                 f.write(z + '\t' + str(h+1) + '\t' + str(df_load.loc[h,z]) + '\n')
         else:

@@ -16,7 +16,7 @@ import numpy as np
 from datetime import datetime
 import pyomo.environ as pyo
 
-days = 4
+days = 30
 # def sim(days):
 
 instance = m1.create_instance('MTS_data.dat')
@@ -37,8 +37,6 @@ vlt_angle=[]
 slack = []
 
 df_generators = pd.read_csv('data_genparams.csv',header=0)
-df_must = pd.read_csv('must_run.csv',header=0)
-must_nodes = list(df_must.columns)
 
 #max here can be (1,365)
 for day in range(1,days):
@@ -123,6 +121,42 @@ for day in range(1,days):
         #     for index in varobject:
         #         if int(index[1]>0 and index[1]<25):
         #             nrsv.append((index[0],index[1]+((day-1)*24),varobject[index].value))
+
+
+            # for j in instance.Generators:
+            #     if instance.on[j,24] == 1:
+            #         instance.on[j,0] = 1
+            #     else:
+            #         instance.on[j,0] = 0
+            #     instance.on[j,0].fixed = True
+
+            #     if instance.mwh[j,24].value <=0 and instance.mwh[j,24].value>= -0.0001:
+            #         newval_1=0
+            #     else:
+            #         newval_1=instance.mwh[j,24].value
+            #     instance.mwh[j,0] = newval_1
+            #     instance.mwh[j,0].fixed = True
+
+            #     if instance.switch[j,24] == 1:
+            #         instance.switch[j,0] = 1
+            #     else:
+            #         instance.switch[j,0] = 0
+            #     instance.switch[j,0].fixed = True
+
+            #     if instance.srsv[j,24].value <=0 and instance.srsv[j,24].value>= -0.0001:
+            #         newval_srsv=0
+            #     else:
+            #         newval_srsv=instance.srsv[j,24].value
+            #     instance.srsv[j,0] = newval_srsv
+            #     instance.srsv[j,0].fixed = True
+
+            #     if instance.nrsv[j,24].value <=0 and instance.nrsv[j,24].value>= -0.0001:
+            #         newval_nrsv=0
+            #     else:
+            #         newval_nrsv=instance.nrsv[j,24].value
+            #     instance.nrsv[j,0] = newval_nrsv
+            #     instance.nrsv[j,0].fixed = True
+
 
     print(day)
         

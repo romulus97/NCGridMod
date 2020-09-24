@@ -16,9 +16,6 @@ model.Must = Set()
 #all generators
 model.Generators = model.Coal | model.Oil | model.Gas | model.Must
 
-### allocate generators that will ensure minimum reserves
-model.ResGenerators = model.Coal | model.Oil | model.Gas
-
 # transmission sets
 model.lines = Set() #Set of linearized segments l
 model.buses = Set() #Set of linearized segments b
@@ -61,16 +58,6 @@ model.Reactance = Param(model.lines)
 model.FlowLim = Param(model.lines)
 model.LinetoBusMap=Param(model.lines,model.buses)
 model.BustoUnitMap=Param(model.Generators,model.buses)
-
-### Transmission Loss as a %discount on production
-model.TransLoss = Param(within=NonNegativeReals)
-
-### Maximum line-usage as a percent of line-capacity
-model.n1criterion = Param(within=NonNegativeReals)
-
-### Minimum spinning reserve as a percent of total reserve
-model.spin_margin = Param(within=NonNegativeReals)
-
 
 ######=================================================########
 ######               Segment B.5                       ########
@@ -159,7 +146,7 @@ def SysCost(model):
     oil = sum(model.mwh[j,i]*(model.heat_rate[j]*10 + model.var_om[j]) for i in model.hh_periods for j in model.Oil)
     gas = sum(model.mwh[j,i]*(model.heat_rate[j]*4.5 + model.var_om[j]) for i in model.hh_periods for j in model.Gas)
     must_run = sum(model.mwh[j,i]*.01 + model.var_om[j] for i in model.hh_periods for j in model.Must)    
-    slack = sum(model.S[z,i]*100000 for i in model.hh_periods for z in model.buses)
+    slack = sum(model.S[z,i]*10000000 for i in model.hh_periods for z in model.buses)
 
     return coal + oil + gas + must_run  + slack
 
