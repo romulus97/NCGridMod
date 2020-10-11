@@ -16,7 +16,7 @@ import numpy as np
 from datetime import datetime
 import pyomo.environ as pyo
 
-days = 30
+days = 3
 # def sim(days):
 
 instance = m1.create_instance('MTS_data.dat')
@@ -29,14 +29,12 @@ K=range(1,H+1)
 
 #Space to store results
 mwh=[]
-# on=[]
-# switch=[]
+on=[]
+switch=[]
 # srsv=[]
 # nrsv=[]
 vlt_angle=[]
 slack = []
-
-df_generators = pd.read_csv('data_genparams.csv',header=0)
 
 #max here can be (1,365)
 for day in range(1,days):
@@ -102,15 +100,15 @@ for day in range(1,days):
                 if int(index[1]>0 and index[1]<25):
                     mwh.append((index[0],index[1]+((day-1)*24),varobject[index].value))                                            
         
-        # if a=='on':  
-        #     for index in varobject:
-        #         if int(index[1]>0 and index[1]<25):
-        #             on.append((index[0],index[1]+((day-1)*24),varobject[index].value))
+        if a=='on':  
+            for index in varobject:
+                if int(index[1]>0 and index[1]<25):
+                    on.append((index[0],index[1]+((day-1)*24),varobject[index].value))
 
-        # if a=='switch':
-        #     for index in varobject:
-        #         if int(index[1]>0 and index[1]<25):
-        #             switch.append((index[0],index[1]+((day-1)*24),varobject[index].value))
+        if a=='switch':
+            for index in varobject:
+                if int(index[1]>0 and index[1]<25):
+                    switch.append((index[0],index[1]+((day-1)*24),varobject[index].value))
                     
         # if a=='srsv':    
         #     for index in varobject:
@@ -123,25 +121,26 @@ for day in range(1,days):
         #             nrsv.append((index[0],index[1]+((day-1)*24),varobject[index].value))
 
 
-            # for j in instance.Generators:
-            #     if instance.on[j,24] == 1:
-            #         instance.on[j,0] = 1
-            #     else:
-            #         instance.on[j,0] = 0
-            #     instance.on[j,0].fixed = True
+    for j in instance.Generators:
+        if instance.on[j,24] == 1:
+            instance.on[j,0] = 1
+        else:
+            instance.on[j,0] = 0
+        instance.on[j,0].fixed = True
 
-            #     if instance.mwh[j,24].value <=0 and instance.mwh[j,24].value>= -0.0001:
-            #         newval_1=0
-            #     else:
-            #         newval_1=instance.mwh[j,24].value
-            #     instance.mwh[j,0] = newval_1
-            #     instance.mwh[j,0].fixed = True
-
-            #     if instance.switch[j,24] == 1:
-            #         instance.switch[j,0] = 1
-            #     else:
-            #         instance.switch[j,0] = 0
-            #     instance.switch[j,0].fixed = True
+        if instance.switch[j,24] == 1:
+            instance.switch[j,0] = 1
+        else:
+            instance.switch[j,0] = 0
+        instance.switch[j,0].fixed = True
+        
+    for j in instance.Generators:        
+        if instance.mwh[j,24].value <=0 and instance.mwh[j,24].value>= -0.0001:
+            newval_1=0
+        else:
+            newval_1=instance.mwh[j,24].value
+        instance.mwh[j,0] = newval_1
+        instance.mwh[j,0].fixed = True
 
             #     if instance.srsv[j,24].value <=0 and instance.srsv[j,24].value>= -0.0001:
             #         newval_srsv=0
@@ -165,8 +164,8 @@ for day in range(1,days):
 vlt_angle_pd=pd.DataFrame(vlt_angle,columns=('Node','Time','Value'))
 mwh_pd=pd.DataFrame(mwh,columns=('Generator','Time','Value'))
 s_pd=pd.DataFrame(slack,columns=('Node','Time','Value'))
-# on_pd=pd.DataFrame(on,columns=('Generator','Time','Value'))
-# switch_pd=pd.DataFrame(switch,columns=('Generator','Time','Value'))
+on_pd=pd.DataFrame(on,columns=('Generator','Time','Value'))
+switch_pd=pd.DataFrame(switch,columns=('Generator','Time','Value'))
 # srsv_pd=pd.DataFrame(srsv,columns=('Generator','Time','Value'))
 # nrsv_pd=pd.DataFrame(nrsv,columns=('Generator','Time','Value'))
 
@@ -176,8 +175,8 @@ s_pd.to_csv('slack.csv')
 # solar_pd.to_csv('solar.csv')
 # wind_pd.to_csv('wind.csv')
 vlt_angle_pd.to_csv('vlt_angle.csv')
-# on_pd.to_csv('on.csv')
-# switch_pd.to_csv('switch.csv')
+on_pd.to_csv('on.csv')
+switch_pd.to_csv('switch.csv')
 # srsv_pd.to_csv('srsv.csv')
 # nrsv_pd.to_csv('nrsv.csv')
 

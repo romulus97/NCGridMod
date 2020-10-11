@@ -23,7 +23,7 @@ data_name = 'MTS_data'
 ######=================================================########
 
 #read parameters for dispatchable resources
-df_gen = pd.read_csv('data_genparams.csv',header=0)
+df_gen = pd.read_csv('data_genparams_reduced.csv',header=0)
 
 #read generation and transmission data
 df_bustounitmap = pd.read_csv('gen_mat.csv',header=0)
@@ -52,6 +52,15 @@ for i in range(0,len(h)):
         n = 'n_' + h[i]
         h2.append(n)
 df_load.columns = h2
+
+##must run at substation-level
+df_must = pd.read_csv('must_run.csv',header=0)
+h = df_must.columns
+h3 = []
+for i in range(0,len(h)):
+    n = 'n_' + h[i]
+    h3.append(n)
+df_must.columns = h3
 
 #hourly minimum reserve as a function of load (e.g., 15% of current load)
 df_reserves = pd.DataFrame((df_load.iloc[:,:].sum(axis=1)*res_margin).values,columns=['Reserve'])
@@ -106,19 +115,25 @@ with open(''+str(data_name)+'.dat', 'w') as f:
     f.write(';\n\n')  
 
     # Gas_cc
-    f.write('set Gas :=\n')
+    f.write('set NGCC :=\n')
     # pull relevant generators
     for gen in range(0,len(df_gen)):
         if df_gen.loc[gen,'typ'] == 'ngcc':
             unit_name = df_gen.loc[gen,'name']
             unit_name = unit_name.replace(' ','_')
-            f.write(unit_name + ' ')
-        elif df_gen.loc[gen,'typ'] == 'ngct':
+            f.write(unit_name + ' ')      
+    f.write(';\n\n')  
+
+    # Gas_cc
+    f.write('set NGCT :=\n')
+    # pull relevant generators
+    for gen in range(0,len(df_gen)):
+        if df_gen.loc[gen,'typ'] == 'ngct':
             unit_name = df_gen.loc[gen,'name']
             unit_name = unit_name.replace(' ','_')
             f.write(unit_name + ' ')        
     f.write(';\n\n')  
-
+    
     # # Slack
     # f.write('set Slack :=\n')
     # # pull relevant generators
@@ -140,14 +155,14 @@ with open(''+str(data_name)+'.dat', 'w') as f:
     # f.write(';\n\n') 
 
     # Must run
-    f.write('set Must :=\n')
-    # pull relevant generators
-    for gen in range(0,len(df_gen)):
-        if df_gen.loc[gen,'typ'] == 'must':
-            unit_name = df_gen.loc[gen,'name']
-            unit_name = unit_name.replace(' ','_')
-            f.write(unit_name + ' ')
-    f.write(';\n\n')  
+    # f.write('set Must :=\n')
+    # # pull relevant generators
+    # for gen in range(0,len(df_gen)):
+    #     if df_gen.loc[gen,'typ'] == 'must':
+    #         unit_name = df_gen.loc[gen,'name']
+    #         unit_name = unit_name.replace(' ','_')
+    #         f.write(unit_name + ' ')
+    # f.write(';\n\n')  
 
     print('Gen sets')
 
@@ -231,6 +246,17 @@ with open(''+str(data_name)+'.dat', 'w') as f:
 ######=================================================########
 ######               Segment A.9                       ########
 ######=================================================########
+
+####### Nodal must run
+     
+    f.write('param:' + '\t' + 'must:=' + '\n')
+    for z in all_nodes:
+        if z in h3:
+            f.write(z + '\t' + str(df_must.loc[0,z]) + '\n')
+        else:
+            f.write(z + '\t' + str(0) + '\n')
+    f.write(';\n\n')
+            
 
 ####### Hourly timeseries (load, hydro, solar, wind, reserve)
     

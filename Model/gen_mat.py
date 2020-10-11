@@ -8,7 +8,7 @@ Created on Sun Aug  9 00:47:29 2020
 import pandas as pd
 import numpy as np
 
-df = pd.read_csv('data_genparams.csv',header=0)
+df = pd.read_csv('data_genparams_reduced.csv',header=0)
 for i in range(0,len(df)):
     df.loc[i,'node'] = 'n_' + str(df.loc[i,'node'])
     
