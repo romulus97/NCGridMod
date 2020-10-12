@@ -55,12 +55,6 @@ for day in range(1,days):
             # instance.HorizonReserves[i] = instance.SimReserves[(day-1)*24+i]
         
              
-    # for z in instance.w_nodes:
-    # #load Wind time series data
-    #     for i in K:
-    #         instance.HorizonWind[z,i] = instance.SimWind[z,(day-1)*24+i]
-    
-
     result = opt.solve(instance,tee=True,symbolic_solver_labels=True) ##,tee=True to check number of variables\n",
     instance.solutions.load_from(result)  
 
@@ -68,19 +62,7 @@ for day in range(1,days):
     for v in instance.component_objects(Var, active=True):
         varobject = getattr(instance, str(v))
         a=str(v)
-       
-        # if a=='solar':
-        #     for index in varobject:
-        #         if int(index[1]>0 and index[1]<25):
-        #             if index[0] in instance.s_nodes:
-        #                 solar.append((index[0],index[1]+((day-1)*24),varobject[index].value))  
-        
-        # if a=='wind':
-        #     for index in varobject:
-        #         if int(index[1]>0 and index[1]<25):
-        #             if index[0] in instance.w_nodes:
-        #                 wind.append((index[0],index[1]+((day-1)*24),varobject[index].value))   
-        
+            
         if a=='Theta':
             for index in varobject:
                 if int(index[1]>0 and index[1]<25):
@@ -170,6 +152,7 @@ for day in range(1,days):
 vlt_angle_pd=pd.DataFrame(vlt_angle,columns=('Node','Time','Value'))
 mwh_pd=pd.DataFrame(mwh,columns=('Generator','Time','Value'))
 s_pd=pd.DataFrame(slack,columns=('Node','Time','Value'))
+h_pd=pd.DataFrame(hydro,columns=('Node','Time','Value'))
 on_pd=pd.DataFrame(on,columns=('Generator','Time','Value'))
 switch_pd=pd.DataFrame(switch,columns=('Generator','Time','Value'))
 # srsv_pd=pd.DataFrame(srsv,columns=('Generator','Time','Value'))
@@ -178,6 +161,7 @@ switch_pd=pd.DataFrame(switch,columns=('Generator','Time','Value'))
 #to save outputs
 mwh_pd.to_csv('mwh.csv')
 s_pd.to_csv('slack.csv')
+h_pd.to_csv('hydro.csv')
 # solar_pd.to_csv('solar.csv')
 # wind_pd.to_csv('wind.csv')
 vlt_angle_pd.to_csv('vlt_angle.csv')

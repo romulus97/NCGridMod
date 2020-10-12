@@ -219,21 +219,6 @@ def HydroC(model,z):
 model.HydroConstraint= Constraint(model.buses,rule=HydroC)
 
 
-# def MaxC2(model,j,i):
-#     return model.mwh[j,i]  <= model.maxcap[j] 
-# model.MaxCap2= Constraint(model.Flex,model.hh_periods,rule=MaxC2)
-
-
-###Max capacity constraints on solar 
-##def SolarC(model,z,i):
-##    return model.solar[z,i] <= model.HorizonSolar[z,i]  
-##model.SolarConstraint= Constraint(model.s_nodes,model.hh_periods,rule=SolarC)
-##
-###Max capacity constraints on wind
-##def WindC(model,z,i):
-##    return model.wind[z,i] <= model.HorizonWind[z,i]  
-##model.WindConstraint= Constraint(model.w_nodes,model.hh_periods,rule=WindC)
-
 
 ######=================================================########
 ######               Segment B.11.1                    ########

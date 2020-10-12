@@ -32,15 +32,6 @@ df_line_params = pd.read_csv('line_params.csv',header=0)
 lines = list(df_line_params['line'])
 
 
-# ##hourly ts of dispatchable hydropower at each domestic dam
-# df_hydro = pd.read_csv('data_hydro.csv',header=0)
-
-####hourly ts of dispatchable solar-power at each plant
-##df_solar = pd.read_csv('data_solar.csv',header=0)   
-##
-####hourly ts of dispatchable wind-power at each plant
-##df_wind = pd.read_csv('data_wind.csv',header=0)
-
 ##hourly ts of load at substation-level
 df_load = pd.read_csv('data_load.csv',header=0)
 h = df_load.columns
@@ -155,36 +146,6 @@ with open(''+str(data_name)+'.dat', 'w') as f:
             f.write(unit_name + ' ')        
     f.write(';\n\n')  
     
-    # # Slack
-    # f.write('set Slack :=\n')
-    # # pull relevant generators
-    # for gen in range(0,len(df_gen)):
-    #     if df_gen.loc[gen,'typ'] == 'slack':
-    #         unit_name = df_gen.loc[gen,'name']
-    #         unit_name = unit_name.replace(' ','_')
-    #         f.write(unit_name + ' ')
-    # f.write(';\n\n')  
-
-    # Hydro
-    # f.write('set Hydro :=\n')
-    # # pull relevant generators
-    # for gen in range(0,len(df_gen)):
-    #     if df_gen.loc[gen,'typ'] == 'hydro':
-    #         unit_name = df_gen.loc[gen,'name']
-    #         unit_name = unit_name.replace(' ','_')
-    #         f.write(unit_name + ' ')
-    # f.write(';\n\n') 
-
-    # Must run
-    # f.write('set Must :=\n')
-    # # pull relevant generators
-    # for gen in range(0,len(df_gen)):
-    #     if df_gen.loc[gen,'typ'] == 'must':
-    #         unit_name = df_gen.loc[gen,'name']
-    #         unit_name = unit_name.replace(' ','_')
-    #         f.write(unit_name + ' ')
-    # f.write(';\n\n')  
-
     print('Gen sets')
 
 ######=================================================########
@@ -316,13 +277,6 @@ with open(''+str(data_name)+'.dat', 'w') as f:
                 f.write(z + '\t' + str(h+1) + '\t' + str(0) + '\n')
     f.write(';\n\n')
 
-##
-##    # wind (hourly)
-##    f.write('param:' + '\t' + 'SimWind:=' + '\n')      
-##    for z in w_nodes:
-##        for h in range(0,len(df_wind)): 
-##            f.write(z + '\t' + str(h+1) + '\t' + str(df_wind.loc[h,z]) + '\n')
-##    f.write(';\n\n')
     
 # ###### System-wide hourly reserve
 #     f.write('param' + '\t' + 'SimReserves:=' + '\n')
