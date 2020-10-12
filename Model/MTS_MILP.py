@@ -230,7 +230,8 @@ def Nodal_Balance(model,z,i):
     slack = model.S[z,i]
     must_run = model.must[z]
     solar = model.HorizonSolar[z,i]
-    return gen + slack + must_run + solar - power_flow == model.HorizonDemand[z,i] 
+    hydro = model.H[z,i]
+    return gen + slack + must_run + solar + hydro - power_flow == model.HorizonDemand[z,i] 
 model.Node_Constraint = Constraint(model.buses,model.hh_periods,rule=Nodal_Balance)
 
 def Flow_line(model,l,i):
