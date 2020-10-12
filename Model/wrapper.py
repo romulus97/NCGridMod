@@ -15,6 +15,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 import pyomo.environ as pyo
+import time
 
 days = 3
 # def sim(days):
@@ -35,27 +36,25 @@ switch=[]
 # nrsv=[]
 vlt_angle=[]
 slack = []
+hydro = []
+
+start = time.time()
 
 #max here can be (1,365)
 for day in range(1,days):
     
     for z in instance.buses:
+        
+        instance.HorizonHydro[z] = instance.SimHydro[z,day]
+        
     #load Demand and Reserve time series data
         for i in K:
             instance.HorizonDemand[z,i] = instance.SimDemand[z,(day-1)*24+i]
-            # instance.HorizonReserves[i] = instance.SimReserves[(day-1)*24+i]
+            instance.HorizonSolar[z,i] = instance.SimSolar[z,(day-1)*24+i]
             
-    # for z in instance.Hydro:
-    # #load Hydropower time series data
+            # instance.HorizonReserves[i] = instance.SimReserves[(day-1)*24+i]
         
-    #     for i in K:
-    #         instance.HorizonHydro[z,i] = instance.SimHydro[z,(day-1)*24+i]
-    
-    # for z in instance.s_nodes:
-    # #load Solar time series data
-    #     for i in K:
-    #         instance.HorizonSolar[z,i] = instance.SimSolar[z,(day-1)*24+i]
- 
+             
     # for z in instance.w_nodes:
     # #load Wind time series data
     #     for i in K:
@@ -93,7 +92,14 @@ for day in range(1,days):
                 if int(index[1]>0 and index[1]<25):
                     if index[0] in instance.buses:
                         slack.append((index[0],index[1]+((day-1)*24),varobject[index].value))
-                        
+
+
+        if a=='H':
+            for index in varobject:
+                if int(index[1]>0 and index[1]<25):
+                    if index[0] in instance.buses:
+                        hydro.append((index[0],index[1]+((day-1)*24),varobject[index].value))
+                                                
                         
         if a=='mwh':
             for index in varobject:
@@ -183,4 +189,7 @@ switch_pd.to_csv('switch.csv')
 
     # return None
 
-
+stop = time.time()
+elapsed = (stop - start)/60
+mins = str(elapsed) + ' minutes'
+print(mins)

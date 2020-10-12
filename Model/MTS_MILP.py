@@ -17,10 +17,6 @@ model.Gas = model.NGCC | model.NGCT
 #all generators
 model.Generators = model.Coal | model.Oil | model.NGCC | model.NGCT
 
-#UC generators
-model.UC = model.Coal | model.NGCC
-model.Flex = model.Oil | model.NGCT
-
 # transmission sets
 model.lines = Set() #Set of linearized segments l
 model.buses = Set() #Set of linearized segments b
@@ -99,14 +95,12 @@ model.must = Param(model.buses,within=NonNegativeReals)
 # model.HorizonReserves = Param(model.hh_periods, within=NonNegativeReals,mutable=True)
 
 ##Variable resources over simulation period
-# model.SimHydro = Param(model.Hydro, model.SH_periods, within=NonNegativeReals)
-##model.SimSolar = Param(model.s_nodes, model.SH_periods, within=NonNegativeReals)
-##model.SimWind = Param(model.w_nodes, model.SH_periods, within=NonNegativeReals)
+model.SimSolar = Param(model.buses, model.SH_periods, within=NonNegativeReals)
+model.SimHydro = Param(model.buses,model.SD_periods,within=NonNegativeReals)
 
 #Variable resources over horizon
-# model.HorizonHydro = Param(model.Hydro,model.hh_periods,within=NonNegativeReals,mutable=True)
-##model.HorizonSolar = Param(model.s_nodes,model.hh_periods,within=NonNegativeReals,mutable=True)
-##model.HorizonWind = Param(model.w_nodes,model.hh_periods,within=NonNegativeReals,mutable=True)
+model.HorizonSolar = Param(model.buses,model.hh_periods,within=NonNegativeReals,mutable=True)
+model.HorizonHydro = Param(model.buses,within=NonNegativeReals,mutable=True)
 
 ######=================================================########
 ######               Segment B.7                       ########
@@ -123,19 +117,16 @@ model.on = Var(model.Generators,model.HH_periods, within=Binary, initialize=0)
 model.switch = Var(model.Generators,model.HH_periods, within=Binary,initialize=0)
 
 # slack variables
-model.S = Var(model.buses,model.HH_periods, within=NonNegativeReals,initialize=0)
+model.S = Var(model.buses,model.hh_periods, within=NonNegativeReals,initialize=0)
+
+# hydropower variables
+model.H = Var(model.buses,model.hh_periods,within=NonNegativeReals,initialize=0)
 
 # #Amount of spining reserve offered by an unit in each hour
 # model.srsv = Var(model.Generators,model.HH_periods, within=NonNegativeReals,initialize=0)
 
 # #Amount of non-sping reserve offered by an unit in each hour
 # model.nrsv = Var(model.Generators,model.HH_periods, within=NonNegativeReals,initialize=0)
-
-###dispatch of solar-power in each hour
-##model.solar = Var(model.s_nodes,model.HH_periods,within=NonNegativeReals)
-##
-###dispatch of wind-power in each hour
-##model.wind = Var(model.w_nodes,model.HH_periods,within=NonNegativeReals)
 
 # transmission line variables 
 model.Flow= Var(model.lines,model.hh_periods)
@@ -221,15 +212,17 @@ def MinC(model,j,i):
     return model.mwh[j,i] >= model.on[j,i] * model.mincap[j]
 model.MinCap= Constraint(model.Generators,model.hh_periods,rule=MinC)
 
+#Max capacity constraints on domestic hydropower 
+def HydroC(model,z):
+    daily = sum(model.H[z,i] for i in model.hh_periods)
+    return  daily <= model.HorizonHydro[z]  
+model.HydroConstraint= Constraint(model.buses,rule=HydroC)
+
+
 # def MaxC2(model,j,i):
 #     return model.mwh[j,i]  <= model.maxcap[j] 
 # model.MaxCap2= Constraint(model.Flex,model.hh_periods,rule=MaxC2)
 
-
-#Max capacity constraints on domestic hydropower 
-# def HydroC(model,z,i):
-#     return model.mwh[z,i] <= model.HorizonHydro[z,i]  
-# model.HydroConstraint= Constraint(model.Hydro,model.hh_periods,rule=HydroC)
 
 ###Max capacity constraints on solar 
 ##def SolarC(model,z,i):
@@ -251,7 +244,8 @@ def Nodal_Balance(model,z,i):
     gen = sum(model.mwh[j,i]*model.BustoUnitMap[j,z] for j in model.Generators)    
     slack = model.S[z,i]
     must_run = model.must[z]
-    return gen + slack + must_run - power_flow == model.HorizonDemand[z,i] 
+    solar = model.HorizonSolar[z,i]
+    return gen + slack + must_run + solar - power_flow == model.HorizonDemand[z,i] 
 model.Node_Constraint = Constraint(model.buses,model.hh_periods,rule=Nodal_Balance)
 
 def Flow_line(model,l,i):

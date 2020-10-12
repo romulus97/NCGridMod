@@ -23,7 +23,7 @@ data_name = 'MTS_data'
 ######=================================================########
 
 #read parameters for dispatchable resources
-df_gen = pd.read_csv('data_genparams_reduced.csv',header=0)
+df_gen = pd.read_csv('data_genparams_partial.csv',header=0)
 
 #read generation and transmission data
 df_bustounitmap = pd.read_csv('gen_mat.csv',header=0)
@@ -61,6 +61,27 @@ for i in range(0,len(h)):
     n = 'n_' + h[i]
     h3.append(n)
 df_must.columns = h3
+
+##hourly ts of solar at substation-level
+df_solar = pd.read_csv('data_solar.csv',header=0)
+h = df_solar.columns
+h4 = []
+for i in range(0,len(h)):
+    if i <= 3:
+        h4.append(h[i])
+    if i > 3:
+        n = 'n_' + h[i]
+        h4.append(n)
+df_solar.columns = h4
+
+##daily ts of hydro at substation-level
+df_hydro = pd.read_csv('data_hydro.csv',header=0)
+h = df_hydro.columns
+h5 = []
+for i in range(0,len(h)):
+    n = 'n_' + h[i]
+    h5.append(n)
+df_hydro.columns = h5
 
 #hourly minimum reserve as a function of load (e.g., 15% of current load)
 df_reserves = pd.DataFrame((df_load.iloc[:,:].sum(axis=1)*res_margin).values,columns=['Reserve'])
@@ -271,22 +292,30 @@ with open(''+str(data_name)+'.dat', 'w') as f:
                 f.write(z + '\t' + str(h+1) + '\t' + str(0) + '\n')
 
     f.write(';\n\n')
+    
+    # solar (hourly)
+    f.write('param:' + '\t' + 'SimSolar:=' + '\n')      
+    for z in all_nodes:
+        if z in h4:
+            for h in range(0,len(df_solar)):
+                f.write(z + '\t' + str(h+1) + '\t' + str(df_solar.loc[h,z]) + '\n')
+        else:
+            for h in range(0,len(df_solar)):
+                f.write(z + '\t' + str(h+1) + '\t' + str(0) + '\n')
 
-    # # hydro (hourly)
-    # f.write('param:' + '\t' + 'SimHydro:=' + '\n')
-    # h_gens = df_hydro.columns      
-    # for z in h_gens:
-    #     for h in range(0,len(df_hydro)): 
-    #     # for h in range(0,240):
-    #         f.write(z + '\t' + str(h+1) + '\t' + str(df_hydro.loc[h,z]) + '\n')
-    # f.write(';\n\n')
+    f.write(';\n\n')
 
-##    # solar (hourly)
-##    f.write('param:' + '\t' + 'SimSolar:=' + '\n')      
-##    for z in s_nodes:
-##        for h in range(0,len(df_solar)): 
-##            f.write(z + '\t' + str(h+1) + '\t' + str(df_solar.loc[h,z]) + '\n')
-##    f.write(';\n\n')
+    # hydro (daily)
+    f.write('param:' + '\t' + 'SimHydro:=' + '\n')
+    for z in all_nodes:
+        if z in h5:
+            for h in range(0,len(df_hydro)): 
+                f.write(z + '\t' + str(h+1) + '\t' + str(df_hydro.loc[h,z]) + '\n')
+        else:
+            for h in range(0,len(df_hydro)):
+                f.write(z + '\t' + str(h+1) + '\t' + str(0) + '\n')
+    f.write(';\n\n')
+
 ##
 ##    # wind (hourly)
 ##    f.write('param:' + '\t' + 'SimWind:=' + '\n')      
