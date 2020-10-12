@@ -90,6 +90,9 @@ model.HorizonDemand = Param(model.buses*model.hh_periods,within=NonNegativeReals
 #Must run by bus
 model.must = Param(model.buses,within=NonNegativeReals)
 
+#Must run by bus
+model.HydroMax = Param(model.buses,within=NonNegativeReals)
+
 #Reserve for the entire system
 # model.SimReserves = Param(model.SH_periods, within=NonNegativeReals)
 # model.HorizonReserves = Param(model.hh_periods, within=NonNegativeReals,mutable=True)
@@ -212,11 +215,16 @@ def MinC(model,j,i):
     return model.mwh[j,i] >= model.on[j,i] * model.mincap[j]
 model.MinCap= Constraint(model.Generators,model.hh_periods,rule=MinC)
 
-#Max capacity constraints on domestic hydropower 
+#Daily sum constraints on hydropower 
 def HydroC(model,z):
     daily = sum(model.H[z,i] for i in model.hh_periods)
     return  daily <= model.HorizonHydro[z]  
 model.HydroConstraint= Constraint(model.buses,rule=HydroC)
+
+#Max capacity constraints on hydropower 
+def HydroMaxC(model,z,i):
+    return  model.H[z,i] <= model.HydroMax[z]  
+model.HydroMaxConstraint= Constraint(model.buses,model.hh_periods,rule=HydroMaxC)
 
 
 

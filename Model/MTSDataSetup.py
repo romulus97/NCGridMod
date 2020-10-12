@@ -74,6 +74,15 @@ for i in range(0,len(h)):
     h5.append(n)
 df_hydro.columns = h5
 
+##hydro caps at substation-level
+df_hmax = pd.read_csv('hydro_max.csv',header=0)
+h = df_hmax.columns
+h6 = []
+for i in range(0,len(h)):
+    n = 'n_' + h[i]
+    h6.append(n)
+df_hmax.columns = h6
+
 #hourly minimum reserve as a function of load (e.g., 15% of current load)
 df_reserves = pd.DataFrame((df_load.iloc[:,:].sum(axis=1)*res_margin).values,columns=['Reserve'])
 
@@ -239,6 +248,14 @@ with open(''+str(data_name)+'.dat', 'w') as f:
             f.write(z + '\t' + str(0) + '\n')
     f.write(';\n\n')
             
+####### Nodal hydrocaps
+    f.write('param:' + '\t' + 'HydroMax:=' + '\n')
+    for z in all_nodes:
+        if z in h6:
+            f.write(z + '\t' + str(df_hmax.loc[0,z]) + '\n')
+        else:
+            f.write(z + '\t' + str(0) + '\n')
+    f.write(';\n\n')
 
 ####### Hourly timeseries (load, hydro, solar, wind, reserve)
     
