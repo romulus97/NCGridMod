@@ -123,7 +123,7 @@ model.switch = Var(model.Generators,model.HH_periods, within=Binary,initialize=0
 model.S = Var(model.buses,model.hh_periods, within=NonNegativeReals,initialize=0)
 
 # hydropower variables
-model.H = Var(model.buses,model.hh_periods,within=NonNegativeReals,initialize=0)
+# model.H = Var(model.buses,model.hh_periods,within=NonNegativeReals,initialize=0)
 
 # #Amount of spining reserve offered by an unit in each hour
 # model.srsv = Var(model.Generators,model.HH_periods, within=NonNegativeReals,initialize=0)
@@ -215,16 +215,16 @@ def MinC(model,j,i):
     return model.mwh[j,i] >= model.on[j,i] * model.mincap[j]
 model.MinCap= Constraint(model.Generators,model.hh_periods,rule=MinC)
 
-#Daily sum constraints on hydropower 
-def HydroC(model,z):
-    daily = sum(model.H[z,i] for i in model.hh_periods)
-    return  daily <= model.HorizonHydro[z]  
-model.HydroConstraint= Constraint(model.buses,rule=HydroC)
+# #Daily sum constraints on hydropower 
+# def HydroC(model,z):
+#     daily = sum(model.H[z,i] for i in model.hh_periods)
+#     return  daily <= model.HorizonHydro[z]  
+# model.HydroConstraint= Constraint(model.buses,rule=HydroC)
 
-#Max capacity constraints on hydropower 
-def HydroMaxC(model,z,i):
-    return  model.H[z,i] <= model.HydroMax[z]  
-model.HydroMaxConstraint= Constraint(model.buses,model.hh_periods,rule=HydroMaxC)
+# #Max capacity constraints on hydropower 
+# def HydroMaxC(model,z,i):
+#     return  model.H[z,i] <= model.HydroMax[z]  
+# model.HydroMaxConstraint= Constraint(model.buses,model.hh_periods,rule=HydroMaxC)
 
 
 
@@ -236,11 +236,13 @@ def Nodal_Balance(model,z,i):
     power_flow = sum(model.Flow[l,i]*model.LinetoBusMap[l,z] for l in model.lines)   
     gen = sum(model.mwh[j,i]*model.BustoUnitMap[j,z] for j in model.Generators)    
     slack = model.S[z,i]
-    must_run = model.must[z]
-    solar = model.HorizonSolar[z,i]
-    hydro = model.H[z,i]
-    return gen + slack + must_run + solar + hydro - power_flow == model.HorizonDemand[z,i] 
+    # must_run = model.must[z]
+    # solar = model.HorizonSolar[z,i]
+    # hydro = model.H[z,i]
+    return gen + slack - power_flow == model.HorizonDemand[z,i] 
 model.Node_Constraint = Constraint(model.buses,model.hh_periods,rule=Nodal_Balance)
+
+# + must_run + solar + hydro
 
 def Flow_line(model,l,i):
     value = sum(model.Theta[z,i]*model.LinetoBusMap[l,z] for z in model.buses)

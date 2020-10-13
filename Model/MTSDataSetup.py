@@ -103,7 +103,7 @@ t_nodes = list(t_nodes['Name'])
 all_nodes = g_nodes + t_nodes + d_nodes
 for i in range(0,len(all_nodes)):
     all_nodes[i] = 'n_' + str(all_nodes[i]) 
-
+    
 
 
 ######=================================================########
