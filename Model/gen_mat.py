@@ -13,22 +13,10 @@ for i in range(0,len(df)):
     df.loc[i,'node'] = 'n_' + str(df.loc[i,'node'])
     
 gens = df.loc[:,'name']
-gen_nodes = df.loc[:,'node']
-unique_nodes = gen_nodes.unique()
 
-g_nodes = pd.read_excel('node_lists.xlsx', sheet_name = 'generation_only', header=0)##Generation nodes without demand
-g_nodes = list(g_nodes['Name'])
-
-d_nodes = pd.read_excel('node_lists.xlsx', sheet_name = 'demand_only',header=0) ##Transformers with demand
-d_nodes = list(d_nodes['Name'])
-
-t_nodes = pd.read_excel('node_lists.xlsx', sheet_name = 'neither',header=0) ##Transformers without demand
-t_nodes = list(t_nodes['Name'])
-
-all_nodes = g_nodes + t_nodes + d_nodes 
-for i in range(0,len(all_nodes)):
-    all_nodes[i] = 'n_' + str(all_nodes[i])
-    
+all_nodes = pd.read_csv('unique_nodes.csv', header=0,index_col=0)##Generation nodes without demand
+all_nodes.columns = ['Name']
+all_nodes = list(all_nodes['Name'])  
 
 A = np.zeros((len(gens),len(all_nodes)))
 

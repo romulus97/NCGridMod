@@ -3,6 +3,7 @@ import csv
 import pandas as pd
 import numpy as np
 
+
 ######=================================================########
 ######               Segment A.1                       ########
 ######=================================================########
@@ -10,10 +11,10 @@ import numpy as np
 SimDays = 365
 SimHours = SimDays * 24
 HorizonHours = 24  ##planning horizon (e.g., 24, 48, 72 hours etc.)
-TransLoss = 0.075  ##transmission loss as a percent of generation
-n1criterion = 0.75 ##maximum line-usage as a percent of line-capacity
-res_margin = 0.15  ##minimum reserve as a percent of system demand
-spin_margin = 0.50 ##minimum spinning reserve as a percent of total reserve
+# TransLoss = 0.075  ##transmission loss as a percent of generation
+# n1criterion = 0.75 ##maximum line-usage as a percent of line-capacity
+# res_margin = 0.15  ##minimum reserve as a percent of system demand
+# spin_margin = 0.50 ##minimum spinning reserve as a percent of total reserve
 
 data_name = 'MTS_data'
 
@@ -32,78 +33,40 @@ df_line_params = pd.read_csv('line_params.csv',header=0)
 lines = list(df_line_params['line'])
 
 
+##daily ts of hydro at nodal-level
+df_hydro = pd.read_csv('data_hydro.csv',header=0)
+h_gens = list(df_hydro.columns)
+
+##hourly ts of dispatchable solar-power at each plant
+df_solar = pd.read_csv('data_solar.csv',header=0)   
+s_gens = list(df_solar.columns)
+
 ##hourly ts of load at substation-level
 df_load = pd.read_csv('data_load.csv',header=0)
-h = df_load.columns
-h2 = []
-for i in range(0,len(h)):
-    if i <= 3:
-        h2.append(h[i])
-    if i > 3:
-        n = 'n_' + h[i]
-        h2.append(n)
-df_load.columns = h2
+d_nodes = list(df_load.columns)
+for i in range(0,len(d_nodes)):
+    d_nodes[i] = 'n_' + d_nodes[i]
+df_load.columns = d_nodes
+
+# #hourly minimum reserve as a function of load (e.g., 15% of current load)
+# df_reserves = pd.DataFrame((df_load.iloc[:,:].sum(axis=1)*res_margin).values,columns=['Reserve'])
 
 ##must run at substation-level
 df_must = pd.read_csv('must_run.csv',header=0)
-h = df_must.columns
-h3 = []
-for i in range(0,len(h)):
-    n = 'n_' + h[i]
-    h3.append(n)
+h3 = list(df_must.columns)
+for i in range(0,len(h3)):
+    h3[i] = 'n_' + h3[i]
 df_must.columns = h3
-
-##hourly ts of solar at substation-level
-df_solar = pd.read_csv('data_solar.csv',header=0)
-h = df_solar.columns
-h4 = []
-for i in range(0,len(h)):
-    if i <= 3:
-        h4.append(h[i])
-    if i > 3:
-        n = 'n_' + h[i]
-        h4.append(n)
-df_solar.columns = h4
-
-##daily ts of hydro at substation-level
-df_hydro = pd.read_csv('data_hydro.csv',header=0)
-h = df_hydro.columns
-h5 = []
-for i in range(0,len(h)):
-    n = 'n_' + h[i]
-    h5.append(n)
-df_hydro.columns = h5
-
-##hydro caps at substation-level
-df_hmax = pd.read_csv('hydro_max.csv',header=0)
-h = df_hmax.columns
-h6 = []
-for i in range(0,len(h)):
-    n = 'n_' + h[i]
-    h6.append(n)
-df_hmax.columns = h6
-
-#hourly minimum reserve as a function of load (e.g., 15% of current load)
-df_reserves = pd.DataFrame((df_load.iloc[:,:].sum(axis=1)*res_margin).values,columns=['Reserve'])
 
 ######=================================================########
 ######               Segment A.3                       ########
 ######=================================================########
 
-####======== Lists of Nodes of the Power System ========########
-g_nodes = pd.read_excel('node_lists.xlsx', sheet_name = 'generation_only', header=0)##Generation nodes without demand
-g_nodes = list(g_nodes['Name'])
+####======== Lists of Nodes of the Power System ========#######
 
-d_nodes = pd.read_excel('node_lists.xlsx', sheet_name = 'demand_only',header=0) ##Transformers with demand
-d_nodes = list(d_nodes['Name'])
-
-t_nodes = pd.read_excel('node_lists.xlsx', sheet_name = 'neither',header=0) ##Transformers without demand
-t_nodes = list(t_nodes['Name'])
-
-all_nodes = g_nodes + t_nodes + d_nodes
-for i in range(0,len(all_nodes)):
-    all_nodes[i] = 'n_' + str(all_nodes[i]) 
-    
+all_nodes = pd.read_csv('unique_nodes.csv', header=0,index_col=0)##Generation nodes without demand
+all_nodes.columns = ['Name']
+all_nodes = list(all_nodes['Name']) 
 
 
 ######=================================================########
@@ -136,25 +99,41 @@ with open(''+str(data_name)+'.dat', 'w') as f:
     f.write(';\n\n')  
 
     # Gas_cc
-    f.write('set NGCC :=\n')
+    f.write('set Gas :=\n')
     # pull relevant generators
     for gen in range(0,len(df_gen)):
         if df_gen.loc[gen,'typ'] == 'ngcc':
             unit_name = df_gen.loc[gen,'name']
             unit_name = unit_name.replace(' ','_')
-            f.write(unit_name + ' ')      
-    f.write(';\n\n')  
-
-    # Gas_cc
-    f.write('set NGCT :=\n')
-    # pull relevant generators
-    for gen in range(0,len(df_gen)):
-        if df_gen.loc[gen,'typ'] == 'ngct':
+            f.write(unit_name + ' ')
+        elif df_gen.loc[gen,'typ'] == 'ngct':
             unit_name = df_gen.loc[gen,'name']
             unit_name = unit_name.replace(' ','_')
             f.write(unit_name + ' ')        
     f.write(';\n\n')  
+
+
+    # Hydro
+    f.write('set Hydro :=\n')
+    # pull relevant generators
+    for gen in range(0,len(df_gen)):
+        if df_gen.loc[gen,'typ'] == 'hydro':
+            unit_name = df_gen.loc[gen,'name']
+            unit_name = unit_name.replace(' ','_')
+            f.write(unit_name + ' ')
+    f.write(';\n\n') 
     
+    # Solar
+    f.write('set Solar :=\n')
+    # pull relevant generators
+    for gen in range(0,len(df_gen)):
+        if df_gen.loc[gen,'typ'] == 'solar':
+            unit_name = df_gen.loc[gen,'name']
+            unit_name = unit_name.replace(' ','_')
+            f.write(unit_name + ' ')
+    f.write(';\n\n') 
+    
+
     print('Gen sets')
 
 ######=================================================########
@@ -176,7 +155,7 @@ with open(''+str(data_name)+'.dat', 'w') as f:
         f.write(z + ' ')
     f.write(';\n\n')
     
-    print('lines')
+    print('nodes')
     
 ######=================================================########
 ######               Segment A.6                       ########
@@ -238,31 +217,12 @@ with open(''+str(data_name)+'.dat', 'w') as f:
 ######               Segment A.9                       ########
 ######=================================================########
 
-####### Nodal must run
-     
-    f.write('param:' + '\t' + 'must:=' + '\n')
-    for z in all_nodes:
-        if z in h3:
-            f.write(z + '\t' + str(df_must.loc[0,z]) + '\n')
-        else:
-            f.write(z + '\t' + str(0) + '\n')
-    f.write(';\n\n')
-            
-####### Nodal hydrocaps
-    f.write('param:' + '\t' + 'HydroMax:=' + '\n')
-    for z in all_nodes:
-        if z in h6:
-            f.write(z + '\t' + str(df_hmax.loc[0,z]) + '\n')
-        else:
-            f.write(z + '\t' + str(0) + '\n')
-    f.write(';\n\n')
-
 ####### Hourly timeseries (load, hydro, solar, wind, reserve)
     
     # load (hourly)
     f.write('param:' + '\t' + 'SimDemand:=' + '\n')      
     for z in all_nodes:
-        if z in h2:
+        if z in d_nodes:
             for h in range(0,len(df_load)):
                 f.write(z + '\t' + str(h+1) + '\t' + str(df_load.loc[h,z]) + '\n')
         else:
@@ -271,38 +231,42 @@ with open(''+str(data_name)+'.dat', 'w') as f:
 
     f.write(';\n\n')
     
-    # solar (hourly)
-    f.write('param:' + '\t' + 'SimSolar:=' + '\n')      
-    for z in all_nodes:
-        if z in h4:
-            for h in range(0,len(df_solar)):
-                f.write(z + '\t' + str(h+1) + '\t' + str(df_solar.loc[h,z]) + '\n')
-        else:
-            for h in range(0,len(df_solar)):
-                f.write(z + '\t' + str(h+1) + '\t' + str(0) + '\n')
-
+    # wind and solar (hourly)
+    f.write('param:' + '\t' + 'SimSolar:=' + '\n')
+    for z in s_gens:
+        for h in range(0,len(df_solar)):
+            f.write(z + '\t' + str(h+1) + '\t' + str(df_solar.loc[h,z]) + '\n')
     f.write(';\n\n')
-
+    
+    
     # hydro (daily)
-    f.write('param:' + '\t' + 'SimHydro:=' + '\n')
-    for z in all_nodes:
-        if z in h5:
-            for h in range(0,len(df_hydro)): 
-                f.write(z + '\t' + str(h+1) + '\t' + str(df_hydro.loc[h,z]) + '\n')
-        else:
-            for h in range(0,len(df_hydro)):
-                f.write(z + '\t' + str(h+1) + '\t' + str(0) + '\n')
+    f.write('param:' + '\t' + 'SimHydro:=' + '\n')    
+    for z in h_gens:
+        for h in range(0,len(df_hydro)): 
+        # for h in range(0,240):
+            f.write(z + '\t' + str(h+1) + '\t' + str(df_hydro.loc[h,z]) + '\n')
     f.write(';\n\n')
 
+
+####### Nodal must run
+     
+    f.write('param:' + '\t' + 'Must:=' + '\n')
+    for z in all_nodes:
+        if z in h3:
+            f.write(z + '\t' + str(df_must.loc[0,z]) + '\n')
+        else:
+            f.write(z + '\t' + str(0) + '\n')
+    f.write(';\n\n')
     
-# ###### System-wide hourly reserve
-#     f.write('param' + '\t' + 'SimReserves:=' + '\n')
-#     # for h in range(0,240):
-#     for h in range(0,len(df_load)):
-#             f.write(str(h+1) + '\t' + str(df_reserves.loc[h,'Reserve']) + '\n')
-#     f.write(';\n\n')
     
-#     print('time series')
+###### System-wide hourly reserve
+    # f.write('param' + '\t' + 'SimReserves:=' + '\n')
+    # # for h in range(0,240):
+    # for h in range(0,len(df_load)):
+    #         f.write(str(h+1) + '\t' + str(df_reserves.loc[h,'Reserve']) + '\n')
+    # f.write(';\n\n')
+    
+    # print('time series')
     
 
 ###### Maps

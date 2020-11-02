@@ -10,16 +10,19 @@ model = AbstractModel()
 ### Generators by fuel-type
 model.Coal = Set()
 model.Oil = Set()
-model.NGCC = Set()
-model.NGCT = Set()
-model.Gas = model.NGCC | model.NGCT
+model.Gas = Set()
+model.Hydro = Set()
+model.Solar = Set()
 
 #all generators
-model.Generators = model.Coal | model.Oil | model.NGCC | model.NGCT
+model.Thermal = model.Coal | model.Oil | model.Gas
+model.Dispatchable = model.Thermal | model.Hydro 
+model.Generators = model.Dispatchable | model.Solar 
+
 
 # transmission sets
-model.lines = Set() #Set of linearized segments l
-model.buses = Set() #Set of linearized segments b
+model.lines = Set() 
+model.buses = Set()
 
 #Generator type
 model.typ = Param(model.Generators,within=Any)
@@ -39,7 +42,7 @@ model.heat_rate = Param(model.Generators)
 #Variable O&M
 model.var_om = Param(model.Generators)
 
-#No load cost
+#Fixed O&M cost
 model.no_load  = Param(model.Generators)
 
 #Start cost
@@ -51,7 +54,7 @@ model.ramp  = Param(model.Generators)
 #Minimun up time
 model.minup = Param(model.Generators)
 
-#Minmun down time
+#Minimun down time
 model.mindn = Param(model.Generators)
 
 
@@ -59,6 +62,16 @@ model.Reactance = Param(model.lines)
 model.FlowLim = Param(model.lines)
 model.LinetoBusMap=Param(model.lines,model.buses)
 model.BustoUnitMap=Param(model.Generators,model.buses)
+
+# ### Transmission Loss as a %discount on production
+# model.TransLoss = Param(within=NonNegativeReals)
+
+# ### Maximum line-usage as a percent of line-capacity
+# model.n1criterion = Param(within=NonNegativeReals)
+
+# ### Minimum spinning reserve as a percent of total reserve
+# model.spin_margin = Param(within=NonNegativeReals)
+
 
 ######=================================================########
 ######               Segment B.5                       ########
@@ -87,23 +100,20 @@ model.SimDemand = Param(model.buses*model.SH_periods, within=NonNegativeReals)
 #Horizon demand
 model.HorizonDemand = Param(model.buses*model.hh_periods,within=NonNegativeReals,mutable=True)
 
-#Must run by bus
-model.must = Param(model.buses,within=NonNegativeReals)
-
-#Must run by bus
-model.HydroMax = Param(model.buses,within=NonNegativeReals)
-
 #Reserve for the entire system
 # model.SimReserves = Param(model.SH_periods, within=NonNegativeReals)
 # model.HorizonReserves = Param(model.hh_periods, within=NonNegativeReals,mutable=True)
 
 ##Variable resources over simulation period
-model.SimSolar = Param(model.buses, model.SH_periods, within=NonNegativeReals)
-model.SimHydro = Param(model.buses,model.SD_periods,within=NonNegativeReals)
+model.SimHydro = Param(model.Hydro, model.SH_periods, within=NonNegativeReals)
+model.SimSolar = Param(model.Solar, model.SH_periods, within=NonNegativeReals)
 
 #Variable resources over horizon
-model.HorizonSolar = Param(model.buses,model.hh_periods,within=NonNegativeReals,mutable=True)
-model.HorizonHydro = Param(model.buses,within=NonNegativeReals,mutable=True)
+model.HorizonHydro = Param(model.Hydro,within=NonNegativeReals,mutable=True)
+model.HorizonSolar = Param(model.Solar,model.hh_periods,within=NonNegativeReals,mutable=True)
+
+#Must run resources
+model.Must = Param(model.buses,within=NonNegativeReals)
 
 ######=================================================########
 ######               Segment B.7                       ########
@@ -114,22 +124,20 @@ model.HorizonHydro = Param(model.buses,within=NonNegativeReals,mutable=True)
 model.mwh = Var(model.Generators,model.HH_periods, within=NonNegativeReals,initialize=0)
 
 #1 if unit is on in hour i, otherwise 0
-model.on = Var(model.Generators,model.HH_periods, within=Binary, initialize=0)
+model.on = Var(model.Dispatchable,model.HH_periods, within=Binary, initialize=0)
 
-# #1 if unit is switching on in hour i, otherwise 0
-model.switch = Var(model.Generators,model.HH_periods, within=Binary,initialize=0)
-
-# slack variables
-model.S = Var(model.buses,model.hh_periods, within=NonNegativeReals,initialize=0)
-
-# hydropower variables
-# model.H = Var(model.buses,model.hh_periods,within=NonNegativeReals,initialize=0)
+#1 if unit is switching on in hour i, otherwise 0
+model.switch = Var(model.Dispatchable,model.HH_periods, within=Binary,initialize=0)
 
 # #Amount of spining reserve offered by an unit in each hour
 # model.srsv = Var(model.Generators,model.HH_periods, within=NonNegativeReals,initialize=0)
 
 # #Amount of non-sping reserve offered by an unit in each hour
 # model.nrsv = Var(model.Generators,model.HH_periods, within=NonNegativeReals,initialize=0)
+
+# slack variables
+model.S = Var(model.buses,model.hh_periods, within=NonNegativeReals,initialize=0)
+
 
 # transmission line variables 
 model.Flow= Var(model.lines,model.hh_periods)
@@ -143,14 +151,14 @@ model.Theta= Var(model.buses,model.hh_periods)
 ######================Objective function=============########
 
 def SysCost(model):
-    fixed = sum(model.no_load[j]*model.on[j,i] for i in model.hh_periods for j in model.Generators)
-    starts = sum(model.st_cost[j]*model.switch[j,i] for i in model.hh_periods for j in model.Generators)
+    fixed = sum(model.no_load[j]*model.on[j,i] for i in model.hh_periods for j in model.Dispatchable)
+    starts = sum(model.st_cost[j]*model.switch[j,i] for i in model.hh_periods for j in model.Dispatchable)
     coal = sum(model.mwh[j,i]*(model.heat_rate[j]*2 + model.var_om[j]) for i in model.hh_periods for j in model.Coal)  
     oil = sum(model.mwh[j,i]*(model.heat_rate[j]*10 + model.var_om[j]) for i in model.hh_periods for j in model.Oil)
     gas = sum(model.mwh[j,i]*(model.heat_rate[j]*4.5 + model.var_om[j]) for i in model.hh_periods for j in model.Gas)
-    slack = sum(model.S[z,i]*10000000 for i in model.hh_periods for z in model.buses)
-
-    return coal + oil + gas + slack + fixed + starts
+    slack = sum(model.S[z,i]*100000 for i in model.hh_periods for z in model.buses)
+    
+    return coal + oil + gas + slack + fixed + starts 
 
 model.SystemCost = Objective(rule=SysCost, sense=minimize)
 
@@ -160,22 +168,21 @@ model.SystemCost = Objective(rule=SysCost, sense=minimize)
 ######               Segment B.9                      ########
 ######=================================================########
 
-####========== Logical Constraint =========#############
-
+#####========== Logical Constraint =========#############
 # Switch is 1 if unit is turned on in current period
 def SwitchCon(model,j,i):
     return model.switch[j,i] >= 1 - model.on[j,i-1] - (1 - model.on[j,i])
-model.SwitchConstraint = Constraint(model.Generators,model.hh_periods,rule = SwitchCon)
+model.SwitchConstraint = Constraint(model.Dispatchable,model.hh_periods,rule = SwitchCon)
 
 
-# # ######========== Up/Down Time Constraint =========#############
-# #Min Up time
+######========== Up/Down Time Constraint =========#############
+#Min Up time
 def MinUp(model,j,i,k):
     if i > 0 and k > i and k < min(i+model.minup[j]-1,model.HorizonHours):
         return model.on[j,i] - model.on[j,i-1] <= model.on[j,k]
     else: 
         return Constraint.Skip
-model.MinimumUp = Constraint(model.Generators,model.HH_periods,model.HH_periods,rule=MinUp)
+model.MinimumUp = Constraint(model.Thermal,model.HH_periods,model.HH_periods,rule=MinUp)
 
 ##Min Down time
 def MinDown(model,j,i,k):
@@ -183,7 +190,7 @@ def MinDown(model,j,i,k):
         return model.on[j,i-1] - model.on[j,i] <= 1 - model.on[j,k]
     else:
         return Constraint.Skip
-model.MinimumDown = Constraint(model.Generators,model.HH_periods,model.HH_periods,rule=MinDown)
+model.MinimumDown = Constraint(model.Thermal,model.HH_periods,model.HH_periods,rule=MinDown)
 
 
 #####==========Ramp Rate Constraints =========#############
@@ -191,13 +198,13 @@ def Ramp1(model,j,i):
     a = model.mwh[j,i]
     b = model.mwh[j,i-1]
     return a - b <= model.ramp[j] 
-model.RampCon1 = Constraint(model.Coal,model.ramp_periods,rule=Ramp1)
+model.RampCon1 = Constraint(model.Thermal,model.ramp_periods,rule=Ramp1)
 
 def Ramp2(model,j,i):
     a = model.mwh[j,i]
     b = model.mwh[j,i-1]
     return b - a <= model.ramp[j] 
-model.RampCon2 = Constraint(model.Coal,model.ramp_periods,rule=Ramp2)
+model.RampCon2 = Constraint(model.Thermal,model.ramp_periods,rule=Ramp2)
 
 
 ######=================================================########
@@ -208,24 +215,25 @@ model.RampCon2 = Constraint(model.Coal,model.ramp_periods,rule=Ramp2)
 # Constraints for Max & Min Capacity of dispatchable resources
 def MaxC(model,j,i):
     return model.mwh[j,i]  <= model.on[j,i] * model.maxcap[j] 
-model.MaxCap= Constraint(model.Generators,model.hh_periods,rule=MaxC)
+model.MaxCap= Constraint(model.Dispatchable,model.hh_periods,rule=MaxC)
 
 
 def MinC(model,j,i):
     return model.mwh[j,i] >= model.on[j,i] * model.mincap[j]
-model.MinCap= Constraint(model.Generators,model.hh_periods,rule=MinC)
+model.MinCap= Constraint(model.Dispatchable,model.hh_periods,rule=MinC)
 
-# #Daily sum constraints on hydropower 
-# def HydroC(model,z):
-#     daily = sum(model.H[z,i] for i in model.hh_periods)
-#     return  daily <= model.HorizonHydro[z]  
-# model.HydroConstraint= Constraint(model.buses,rule=HydroC)
 
-# #Max capacity constraints on hydropower 
-# def HydroMaxC(model,z,i):
-#     return  model.H[z,i] <= model.HydroMax[z]  
-# model.HydroMaxConstraint= Constraint(model.buses,model.hh_periods,rule=HydroMaxC)
+#Max capacity constraints on domestic hydropower 
+def HydroC(model,j,i):
+    daily = sum(model.mwh[j,i] for i in model.hh_periods)
+    return  daily <= model.HorizonHydro[j]    
+model.HydroConstraint= Constraint(model.Hydro,model.hh_periods,rule=HydroC)
 
+
+#Max capacity constraints on solar
+def SolarC(model,j,i): 
+    return  model.mwh[j,i] <= model.HorizonSolar[j,i]    
+model.SolarConstraint= Constraint(model.Solar,model.hh_periods,rule=SolarC)
 
 
 ######=================================================########
@@ -236,13 +244,9 @@ def Nodal_Balance(model,z,i):
     power_flow = sum(model.Flow[l,i]*model.LinetoBusMap[l,z] for l in model.lines)   
     gen = sum(model.mwh[j,i]*model.BustoUnitMap[j,z] for j in model.Generators)    
     slack = model.S[z,i]
-    # must_run = model.must[z]
-    # solar = model.HorizonSolar[z,i]
-    # hydro = model.H[z,i]
-    return gen + slack - power_flow == model.HorizonDemand[z,i] 
+    must_run = model.Must[z]
+    return gen + slack + must_run - power_flow == model.HorizonDemand[z,i] 
 model.Node_Constraint = Constraint(model.buses,model.hh_periods,rule=Nodal_Balance)
-
-# + must_run + solar + hydro
 
 def Flow_line(model,l,i):
     value = sum(model.Theta[z,i]*model.LinetoBusMap[l,z] for z in model.buses)

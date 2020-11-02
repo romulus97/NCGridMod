@@ -10,22 +10,16 @@ import numpy as np
 
 df = pd.read_csv('data_transparams.csv',header=0)
 
-L = []
-for i in range(0,len(df)):
-    df.loc[i,'source'] = 'n_' + str(df.loc[i,'source'])
-    df.loc[i,'sink'] = 'n_' + str(df.loc[i,'sink'])
-    L.append(df.loc[i,'source'] + df.loc[i,'sink'])
-dfL = pd.DataFrame(L,columns=['lines'])
-unique_lines = dfL['lines'].unique()
-
 sources = df.loc[:,'source']
 sinks = df.loc[:,'sink']
 combined = np.append(sources, sinks)
 df_combined = pd.DataFrame(combined,columns=['node'])
 unique_nodes = df_combined['node'].unique()
 unique_nodes.sort()
+df_unique = pd.DataFrame(unique_nodes)
+df_unique.to_csv('unique_nodes.csv')
 
-A = np.zeros((len(unique_lines),len(unique_nodes)))
+A = np.zeros((len(df),len(unique_nodes)))
 
 df_line_to_bus = pd.DataFrame(A)
 df_line_to_bus.columns = unique_nodes
@@ -47,8 +41,8 @@ for i in range(0,len(df)):
         negative.append(k)
         df_line_to_bus.loc[ref_node,s] = 1
         df_line_to_bus.loc[ref_node,k] = -1
-        reactance.append(1/df.loc[i,'linesus'])
-        limit.append(df.loc[i,'linemva'])
+        reactance.append(df.loc[i,'reactance'])
+        limit.append(df.loc[i,'limit'])
         ref_node += 1
     elif k == 'n_6682':      
         lines.append(line)
@@ -56,8 +50,8 @@ for i in range(0,len(df)):
         negative.append(s)
         df_line_to_bus.loc[ref_node,k] = 1
         df_line_to_bus.loc[ref_node,s] = -1
-        reactance.append(1/df.loc[i,'linesus'])
-        limit.append(df.loc[i,'linemva'])
+        reactance.append(df.loc[i,'reactance'])
+        limit.append(df.loc[i,'limit'])
         ref_node += 1
         
 for i in range(0,len(df)):
@@ -70,10 +64,9 @@ for i in range(0,len(df)):
             if line in lines:
                 
                 idx = lines.index(line)
-                reactance[idx] = max(1/df.loc[i,'linesus'],reactance[idx])
-                limit[idx] = limit[idx] + df.loc[i,'linemva']
-
-                
+                reactance[idx] = max(df.loc[i,'reactance'],reactance[idx])
+                limit[idx] = limit[idx] + df.loc[i,'limit']
+               
             else:
                 
                 lines.append(line)
@@ -116,8 +109,8 @@ for i in range(0,len(df)):
                     df_line_to_bus.loc[ref_node,s] = 1
                     df_line_to_bus.loc[ref_node,k] = -1
     
-                reactance.append(1/df.loc[i,'linesus'])
-                limit.append(df.loc[i,'linemva'])
+                reactance.append(df.loc[i,'reactance'])
+                limit.append(df.loc[i,'limit'])
                 ref_node += 1
 
 df_line_to_bus['line'] = lines
