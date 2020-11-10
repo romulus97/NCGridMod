@@ -235,7 +235,7 @@ with open(''+str(data_name)+'.dat', 'w') as f:
     f.write('param:' + '\t' + 'SimSolar:=' + '\n')
     for z in s_gens:
         for h in range(0,len(df_solar)):
-            f.write(z + '\t' + str(h+1) + '\t' + str(df_solar.loc[h,z]) + '\n')
+            f.write(z + '\t' + str(h+1) + '\t' + str(max(0,df_solar.loc[h,z])) + '\n')
     f.write(';\n\n')
     
     
