@@ -55,4 +55,4 @@ for d in names:
     idx = names.index(d)
     df_out[d] = mwh[:,idx]
     
-df_out.to_csv('data_hydro.csv')
+df_out.to_csv('data_hydro.csv',index_col=None)
