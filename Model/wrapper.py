@@ -18,7 +18,7 @@ from datetime import datetime
 import pyomo.environ as pyo
 
 # Max = 365
-days = 4
+days = 2
 
 instance = m1.create_instance('MTS_data.dat')
 instance2 = m2.create_instance('MTS_data.dat')

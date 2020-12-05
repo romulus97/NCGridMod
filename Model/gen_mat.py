@@ -23,9 +23,17 @@ A = np.zeros((len(gens),len(all_nodes)))
 df_A = pd.DataFrame(A)
 df_A.columns = all_nodes
 
+missing = []
+
 for i in range(0,len(gens)):
     node = df.loc[i,'node']
     df_A.loc[i,node] = 1
+    
+    if node in all_nodes:
+        pass
+    else:
+        missing.append(node)
 
 df_A.to_csv('gen_mat.csv')
+
 
