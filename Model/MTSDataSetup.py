@@ -41,6 +41,10 @@ h_gens = list(df_hydro.columns)
 df_solar = pd.read_csv('data_solar.csv',header=0)   
 s_gens = list(df_solar.columns)
 
+##hourly ts of dispatchable solar-power at each plant
+df_nuc = pd.read_csv('data_nuc.csv',header=0)   
+n_gens = list(df_nuc.columns)
+
 ##hourly ts of load at substation-level
 df_load = pd.read_csv('data_load.csv',header=0)
 d_nodes = list(df_load.columns)

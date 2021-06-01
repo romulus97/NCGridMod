@@ -13,11 +13,11 @@ model.Oil = Set()
 model.Gas = Set()
 model.Hydro = Set()
 model.Solar = Set()
+model.Nuc = Set()
 
 #all generators
-model.Thermal = model.Coal | model.Oil | model.Gas
-model.Dispatchable = model.Thermal | model.Hydro 
-model.Generators = model.Dispatchable | model.Solar 
+model.Dispatchable = model.Coal | model.Oil | model.Gas
+model.Generators = model.Dispatchable | model.Solar | model.Hydro | model.Nuc
 
 
 # transmission sets
@@ -107,13 +107,16 @@ model.HorizonDemand = Param(model.buses*model.hh_periods,within=NonNegativeReals
 ##Variable resources over simulation period
 model.SimHydro = Param(model.Hydro, model.SH_periods, within=NonNegativeReals)
 model.SimSolar = Param(model.Solar, model.SH_periods, within=NonNegativeReals)
+model.SimNuc =  Param(model.Nuc, model.SH_periods, within=NonNegativeReals)
 
 #Variable resources over horizon
 model.HorizonHydro = Param(model.Hydro,within=NonNegativeReals,mutable=True)
 model.HorizonSolar = Param(model.Solar,model.hh_periods,within=NonNegativeReals,mutable=True)
+model.HorizonNuc = Param(model.Nuc,model.hh_periods,within=NonNegativeReals,mutable=True)
 
-#Must run resources
-model.Must = Param(model.buses,within=NonNegativeReals)
+
+# #Must run resources
+# model.Must = Param(model.buses,within=NonNegativeReals)
 
 ######=================================================########
 ######               Segment B.7                       ########
@@ -151,14 +154,16 @@ model.Theta= Var(model.buses,model.hh_periods)
 ######================Objective function=============########
 
 def SysCost(model):
+  
     fixed = sum(model.no_load[j]*model.on[j,i] for i in model.hh_periods for j in model.Dispatchable)
     starts = sum(model.st_cost[j]*model.switch[j,i] for i in model.hh_periods for j in model.Dispatchable)
     coal = sum(model.mwh[j,i]*(model.heat_rate[j]*2 + model.var_om[j]) for i in model.hh_periods for j in model.Coal)  
     oil = sum(model.mwh[j,i]*(model.heat_rate[j]*10 + model.var_om[j]) for i in model.hh_periods for j in model.Oil)
     gas = sum(model.mwh[j,i]*(model.heat_rate[j]*4.5 + model.var_om[j]) for i in model.hh_periods for j in model.Gas)
-    slack = sum(model.S[z,i]*100000 for i in model.hh_periods for z in model.buses)
+    slack = sum(model.S[z,i]*10000 for i in model.hh_periods for z in model.buses)
+    solar = sum(model.mwh[j,i]*.01 for i in model.hh_periods for j in model.Solar)
     
-    return coal + oil + gas + slack + fixed + starts 
+    return coal + oil + gas + slack + fixed + starts + solar
 
 model.SystemCost = Objective(rule=SysCost, sense=minimize)
 
@@ -182,7 +187,7 @@ def MinUp(model,j,i,k):
         return model.on[j,i] - model.on[j,i-1] <= model.on[j,k]
     else: 
         return Constraint.Skip
-model.MinimumUp = Constraint(model.Thermal,model.HH_periods,model.HH_periods,rule=MinUp)
+model.MinimumUp = Constraint(model.Dispatchable,model.HH_periods,model.HH_periods,rule=MinUp)
 
 ##Min Down time
 def MinDown(model,j,i,k):
@@ -190,7 +195,7 @@ def MinDown(model,j,i,k):
         return model.on[j,i-1] - model.on[j,i] <= 1 - model.on[j,k]
     else:
         return Constraint.Skip
-model.MinimumDown = Constraint(model.Thermal,model.HH_periods,model.HH_periods,rule=MinDown)
+model.MinimumDown = Constraint(model.Dispatchable,model.HH_periods,model.HH_periods,rule=MinDown)
 
 
 #####==========Ramp Rate Constraints =========#############
@@ -198,13 +203,13 @@ def Ramp1(model,j,i):
     a = model.mwh[j,i]
     b = model.mwh[j,i-1]
     return a - b <= model.ramp[j] 
-model.RampCon1 = Constraint(model.Thermal,model.ramp_periods,rule=Ramp1)
+model.RampCon1 = Constraint(model.Dispatchable,model.ramp_periods,rule=Ramp1)
 
 def Ramp2(model,j,i):
     a = model.mwh[j,i]
     b = model.mwh[j,i-1]
     return b - a <= model.ramp[j] 
-model.RampCon2 = Constraint(model.Thermal,model.ramp_periods,rule=Ramp2)
+model.RampCon2 = Constraint(model.Dispatchable,model.ramp_periods,rule=Ramp2)
 
 
 ######=================================================########
@@ -223,10 +228,16 @@ def MinC(model,j,i):
 model.MinCap= Constraint(model.Dispatchable,model.hh_periods,rule=MinC)
 
 
-#Max capacity constraints on domestic hydropower 
-def HydroC(model,j,i):
-    daily = sum(model.mwh[j,i] for i in model.hh_periods)
-    return  daily <= model.HorizonHydro[j]    
+# #Max capacity constraints on domestic hydropower 
+# def HydroC(model,j,i):
+#     daily = sum(model.mwh[j,i] for i in model.hh_periods)
+#     return  daily <= model.HorizonHydro[j]    
+# model.HydroConstraint= Constraint(model.Hydro,model.hh_periods,rule=HydroC)
+
+
+#Max capacity constraints on hydro
+def HydroC(model,j,i): 
+    return  model.mwh[j,i] <= model.HorizonHydro[j,i]    
 model.HydroConstraint= Constraint(model.Hydro,model.hh_periods,rule=HydroC)
 
 
@@ -234,6 +245,11 @@ model.HydroConstraint= Constraint(model.Hydro,model.hh_periods,rule=HydroC)
 def SolarC(model,j,i): 
     return  model.mwh[j,i] <= model.HorizonSolar[j,i]    
 model.SolarConstraint= Constraint(model.Solar,model.hh_periods,rule=SolarC)
+
+#Max capacity constraints on solar
+def NucC(model,j,i): 
+    return  model.mwh[j,i] <= model.HorizonNuc[j,i]    
+model.NucConstraint= Constraint(model.Nuc,model.hh_periods,rule=NucC)
 
 
 ######=================================================########

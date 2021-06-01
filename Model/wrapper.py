@@ -25,6 +25,7 @@ instance2 = m2.create_instance('MTS_data.dat')
 instance2.dual = pyo.Suffix(direction=pyo.Suffix.IMPORT)
 
 opt = SolverFactory("cplex")
+opt.options["threads"] = 8
 
 H = instance.HorizonHours
 D = 2
@@ -57,8 +58,9 @@ for day in range(1,days):
 
     for z in instance.Hydro:
     #load Hydropower time series data
-        instance.HorizonHydro[z] = instance.SimHydro[z,day]
-        instance2.HorizonHydro[z] = instance.SimHydro[z,day]
+        for i in K:
+            instance.HorizonHydro[z,i] = instance.SimHydro[z,(day-1)*24+i]
+            instance2.HorizonHydro[z,i] = instance.SimHydro[z,(day-1)*24+i]
         
     for z in instance.Solar:
     #load Solar time series data
@@ -66,12 +68,16 @@ for day in range(1,days):
             instance.HorizonSolar[z,i] = instance.SimSolar[z,(day-1)*24+i]
             instance2.HorizonSolar[z,i] = instance.SimSolar[z,(day-1)*24+i]
 
+    for z in instance.Nuc:
+    #load Nuclear time series data
+        for i in K:
+            instance.HorizonNuc[z,i] = instance.SimNuc[z,(day-1)*24+i]
+            instance2.HorizonNuc[z,i] = instance.SimNuc[z,(day-1)*24+i]
 
     result = opt.solve(instance,tee=True,symbolic_solver_labels=True) ##,tee=True to check number of variables\n",
     instance.solutions.load_from(result)  
     
-    print('MILP')
-    
+    print('MILP done')
     
     for j in instance.Dispatchable:
         for t in K:
@@ -93,6 +99,8 @@ for day in range(1,days):
                     
     results = opt.solve(instance2,tee=True,symbolic_solver_labels=True)
     instance2.solutions.load_from(results)
+    
+    print('LP done')
 
     for c in instance2.component_objects(Constraint, active=True):
         cobject = getattr(instance2, str(c))
@@ -119,15 +127,15 @@ for day in range(1,days):
                 if int(index[1]>0 and index[1]<25):
                     mwh.append((index[0],index[1]+((day-1)*24),varobject[index].value))                                            
         
-        if a=='on':  
-            for index in varobject:
-                if int(index[1]>0 and index[1]<25):
-                    on.append((index[0],index[1]+((day-1)*24),varobject[index].value))
+        # if a=='on':  
+        #     for index in varobject:
+        #         if int(index[1]>0 and index[1]<25):
+        #             on.append((index[0],index[1]+((day-1)*24),varobject[index].value))
 
-        if a=='switch':
-            for index in varobject:
-                if int(index[1]>0 and index[1]<25):
-                    switch.append((index[0],index[1]+((day-1)*24),varobject[index].value))
+        # if a=='switch':
+        #     for index in varobject:
+        #         if int(index[1]>0 and index[1]<25):
+        #             switch.append((index[0],index[1]+((day-1)*24),varobject[index].value))
                     
         if a=='S':    
             for index in varobject:
