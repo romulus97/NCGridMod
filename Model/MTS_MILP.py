@@ -115,8 +115,8 @@ model.HorizonSolar = Param(model.Solar,model.hh_periods,within=NonNegativeReals,
 model.HorizonNuc = Param(model.Nuc,model.hh_periods,within=NonNegativeReals,mutable=True)
 
 
-# #Must run resources
-# model.Must = Param(model.buses,within=NonNegativeReals)
+#Must run resources
+model.Must = Param(model.buses,within=NonNegativeReals)
 
 ######=================================================########
 ######               Segment B.7                       ########
