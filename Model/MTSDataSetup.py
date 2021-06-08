@@ -137,7 +137,15 @@ with open(''+str(data_name)+'.dat', 'w') as f:
             f.write(unit_name + ' ')
     f.write(';\n\n') 
     
-
+    # Nuclear
+    f.write('set Nuc :=\n')
+    # pull relevant generators
+    for gen in range(0,len(df_gen)):
+        if df_gen.loc[gen,'typ'] == 'nuc':
+            unit_name = df_gen.loc[gen,'name']
+            unit_name = unit_name.replace(' ','_')
+            f.write(unit_name + ' ')
+    f.write(';\n\n') 
     print('Gen sets')
 
 ######=================================================########
@@ -241,15 +249,28 @@ with open(''+str(data_name)+'.dat', 'w') as f:
         for h in range(0,len(df_solar)):
             f.write(z + '\t' + str(h+1) + '\t' + str(max(0,df_solar.loc[h,z])) + '\n')
     f.write(';\n\n')
-    
-    
-    # hydro (daily)
-    f.write('param:' + '\t' + 'SimHydro:=' + '\n')    
+
+    # hydro (hourly)
+    f.write('param:' + '\t' + 'SimHydro:=' + '\n')
     for z in h_gens:
-        for h in range(0,len(df_hydro)): 
-        # for h in range(0,240):
-            f.write(z + '\t' + str(h+1) + '\t' + str(df_hydro.loc[h,z]) + '\n')
+        for h in range(0,len(df_hydro)):
+            f.write(z + '\t' + str(h+1) + '\t' + str(max(0,df_hydro.loc[h,z])) + '\n')
     f.write(';\n\n')
+
+    # wind and solar (hourly)
+    f.write('param:' + '\t' + 'SimNuc:=' + '\n')
+    for z in n_gens:
+        for h in range(0,len(df_nuc)):
+            f.write(z + '\t' + str(h+1) + '\t' + str(max(0,df_nuc.loc[h,z])) + '\n')
+    f.write(';\n\n')    
+    
+    # # hydro (daily)
+    # f.write('param:' + '\t' + 'SimHydro:=' + '\n')    
+    # for z in h_gens:
+    #     for h in range(0,len(df_hydro)): 
+    #     # for h in range(0,240):
+    #         f.write(z + '\t' + str(h+1) + '\t' + str(df_hydro.loc[h,z]) + '\n')
+    # f.write(';\n\n')
 
 
 ####### Nodal must run
