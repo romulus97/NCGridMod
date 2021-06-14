@@ -18,7 +18,7 @@ from datetime import datetime
 import pyomo.environ as pyo
 
 # Max = 365
-days = 2
+days = 4
 
 instance = m1.create_instance('MTS_data.dat')
 instance2 = m2.create_instance('MTS_data.dat')
@@ -44,6 +44,11 @@ vlt_angle=[]
 duals=[]
 
 df_generators = pd.read_csv('data_genparams_partial.csv',header=0)
+
+
+##hourly ts of load at substation-level
+df_load = pd.read_csv('data_load.csv',header=0)
+d_nodes = list(df_load.columns)
 
 #max here can be (1,365)
 for day in range(1,days):

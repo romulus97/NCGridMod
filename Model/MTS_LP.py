@@ -63,16 +63,6 @@ model.FlowLim = Param(model.lines)
 model.LinetoBusMap=Param(model.lines,model.buses)
 model.BustoUnitMap=Param(model.Generators,model.buses)
 
-# ### Transmission Loss as a %discount on production
-# model.TransLoss = Param(within=NonNegativeReals)
-
-# ### Maximum line-usage as a percent of line-capacity
-# model.n1criterion = Param(within=NonNegativeReals)
-
-# ### Minimum spinning reserve as a percent of total reserve
-# model.spin_margin = Param(within=NonNegativeReals)
-
-
 ######=================================================########
 ######               Segment B.5                       ########
 ######=================================================########
@@ -98,7 +88,7 @@ model.ramp_periods = RangeSet(2,24)
 model.SimDemand = Param(model.buses*model.SH_periods, within=NonNegativeReals)
 
 #Horizon demand
-model.HorizonDemand = Param(model.buses*model.hh_periods,within=NonNegativeReals,mutable=True)
+model.HorizonDemand = Param(model.buses*model.hh_periods,within=NonNegativeReals,mutable=True,initialize=0)
 
 #Reserve for the entire system
 # model.SimReserves = Param(model.SH_periods, within=NonNegativeReals)
@@ -111,13 +101,13 @@ model.SimNuc = Param(model.Nuc, model.SH_periods, within=NonNegativeReals)
 
 
 #Variable resources over horizon
-model.HorizonHydro = Param(model.Hydro,within=NonNegativeReals,mutable=True)
+model.HorizonHydro = Param(model.Hydro,model.hh_periods,within=NonNegativeReals,mutable=True)
 model.HorizonSolar = Param(model.Solar,model.hh_periods,within=NonNegativeReals,mutable=True)
 model.HorizonNuc = Param(model.Nuc,model.hh_periods,within=NonNegativeReals,mutable=True)
 
 
-# #Must run resources
-# model.Must = Param(model.buses,within=NonNegativeReals)
+#Must run resources
+model.Must = Param(model.buses,within=NonNegativeReals)
 
 ######=================================================########
 ######               Segment B.7                       ########
@@ -205,12 +195,10 @@ def MinC(model,j,i):
 model.MinCap= Constraint(model.Dispatchable,model.hh_periods,rule=MinC)
 
 
-#Max capacity constraints on domestic hydropower 
+#Max capacity constraints on hydropower 
 def HydroC(model,j,i):
-    daily = sum(model.mwh[j,i] for i in model.hh_periods)
-    return  daily <= model.HorizonHydro[j]    
+    return  model.mwh[j,i] <= model.HorizonHydro[j,i]    
 model.HydroConstraint= Constraint(model.Hydro,model.hh_periods,rule=HydroC)
-
 
 #Max capacity constraints on solar
 def SolarC(model,j,i): 

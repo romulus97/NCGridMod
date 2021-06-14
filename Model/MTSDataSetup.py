@@ -48,9 +48,9 @@ n_gens = list(df_nuc.columns)
 ##hourly ts of load at substation-level
 df_load = pd.read_csv('data_load.csv',header=0)
 d_nodes = list(df_load.columns)
-for i in range(0,len(d_nodes)):
-    d_nodes[i] = 'n_' + d_nodes[i]
-df_load.columns = d_nodes
+# for i in range(0,len(d_nodes)):
+#     d_nodes[i] = 'n_' + d_nodes[i]
+# df_load.columns = d_nodes
 
 # #hourly minimum reserve as a function of load (e.g., 15% of current load)
 # df_reserves = pd.DataFrame((df_load.iloc[:,:].sum(axis=1)*res_margin).values,columns=['Reserve'])
@@ -236,10 +236,10 @@ with open(''+str(data_name)+'.dat', 'w') as f:
     for z in all_nodes:
         if z in d_nodes:
             for h in range(0,len(df_load)):
-                f.write(z + '\t' + str(h+1) + '\t' + str(df_load.loc[h,z]) + '\n')
+                    f.write(z + '\t' + str(h+1) + '\t' + str(max(0,df_load.loc[h,z])) + '\n')
         else:
             for h in range(0,len(df_load)):
-                f.write(z + '\t' + str(h+1) + '\t' + str(0) + '\n')
+                    f.write(z + '\t' + str(h+1) + '\t' + str(0) + '\n')
 
     f.write(';\n\n')
     

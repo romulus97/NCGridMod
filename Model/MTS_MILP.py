@@ -63,15 +63,6 @@ model.FlowLim = Param(model.lines)
 model.LinetoBusMap=Param(model.lines,model.buses)
 model.BustoUnitMap=Param(model.Generators,model.buses)
 
-# ### Transmission Loss as a %discount on production
-# model.TransLoss = Param(within=NonNegativeReals)
-
-# ### Maximum line-usage as a percent of line-capacity
-# model.n1criterion = Param(within=NonNegativeReals)
-
-# ### Minimum spinning reserve as a percent of total reserve
-# model.spin_margin = Param(within=NonNegativeReals)
-
 
 ######=================================================########
 ######               Segment B.5                       ########
@@ -98,7 +89,7 @@ model.ramp_periods = RangeSet(2,24)
 model.SimDemand = Param(model.buses*model.SH_periods, within=NonNegativeReals)
 
 #Horizon demand
-model.HorizonDemand = Param(model.buses*model.hh_periods,within=NonNegativeReals,mutable=True)
+model.HorizonDemand = Param(model.buses*model.hh_periods,within=NonNegativeReals,mutable=True,initialize=0)
 
 #Reserve for the entire system
 # model.SimReserves = Param(model.SH_periods, within=NonNegativeReals)
@@ -110,7 +101,7 @@ model.SimSolar = Param(model.Solar, model.SH_periods, within=NonNegativeReals)
 model.SimNuc =  Param(model.Nuc, model.SH_periods, within=NonNegativeReals)
 
 #Variable resources over horizon
-model.HorizonHydro = Param(model.Hydro,within=NonNegativeReals,mutable=True)
+model.HorizonHydro = Param(model.Hydro,model.hh_periods,within=NonNegativeReals,mutable=True)
 model.HorizonSolar = Param(model.Solar,model.hh_periods,within=NonNegativeReals,mutable=True)
 model.HorizonNuc = Param(model.Nuc,model.hh_periods,within=NonNegativeReals,mutable=True)
 
@@ -180,8 +171,8 @@ def SwitchCon(model,j,i):
 model.SwitchConstraint = Constraint(model.Dispatchable,model.hh_periods,rule = SwitchCon)
 
 
-######========== Up/Down Time Constraint =========#############
-#Min Up time
+# ######========== Up/Down Time Constraint =========#############
+# #Min Up time
 def MinUp(model,j,i,k):
     if i > 0 and k > i and k < min(i+model.minup[j]-1,model.HorizonHours):
         return model.on[j,i] - model.on[j,i-1] <= model.on[j,k]
@@ -189,7 +180,7 @@ def MinUp(model,j,i,k):
         return Constraint.Skip
 model.MinimumUp = Constraint(model.Dispatchable,model.HH_periods,model.HH_periods,rule=MinUp)
 
-##Min Down time
+# ##Min Down time
 def MinDown(model,j,i,k):
     if i > 0 and k > i and k < min(i+model.mindn[j]-1,model.HorizonHours):
         return model.on[j,i-1] - model.on[j,i] <= 1 - model.on[j,k]
@@ -222,6 +213,10 @@ def MaxC(model,j,i):
     return model.mwh[j,i]  <= model.on[j,i] * model.maxcap[j] 
 model.MaxCap= Constraint(model.Dispatchable,model.hh_periods,rule=MaxC)
 
+# def MaxC(model,j,i):
+#     return model.mwh[j,i]  <=  model.maxcap[j] 
+# model.MaxCap= Constraint(model.Dispatchable,model.hh_periods,rule=MaxC)
+
 
 def MinC(model,j,i):
     return model.mwh[j,i] >= model.on[j,i] * model.mincap[j]
@@ -239,7 +234,6 @@ model.MinCap= Constraint(model.Dispatchable,model.hh_periods,rule=MinC)
 def HydroC(model,j,i): 
     return  model.mwh[j,i] <= model.HorizonHydro[j,i]    
 model.HydroConstraint= Constraint(model.Hydro,model.hh_periods,rule=HydroC)
-
 
 #Max capacity constraints on solar
 def SolarC(model,j,i): 
