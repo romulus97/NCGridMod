@@ -33,9 +33,13 @@ df_line_params = pd.read_csv('line_params.csv',header=0)
 lines = list(df_line_params['line'])
 
 
-##daily ts of hydro at nodal-level
-df_hydro = pd.read_csv('data_hydro.csv',header=0)
+##hourly ts of hydro at nodal-level
+df_hydro = pd.read_csv('data_hydro_H.csv',header=0)
 h_gens = list(df_hydro.columns)
+
+##hourly ts of hydro at nodal-level
+df_pumping = pd.read_csv('data_hydro_P.csv',header=0)
+p_nodes = list(df_pumping.columns)
 
 ##hourly ts of dispatchable solar-power at each plant
 df_solar = pd.read_csv('data_solar.csv',header=0)   
@@ -167,7 +171,7 @@ with open(''+str(data_name)+'.dat', 'w') as f:
         f.write(z + ' ')
     f.write(';\n\n')
     
-    print('nodes')
+    print('lines')
     
 ######=================================================########
 ######               Segment A.6                       ########
@@ -234,9 +238,12 @@ with open(''+str(data_name)+'.dat', 'w') as f:
     # load (hourly)
     f.write('param:' + '\t' + 'SimDemand:=' + '\n')      
     for z in all_nodes:
-        if z in d_nodes:
+        if z in d_nodes and z in p_nodes:
             for h in range(0,len(df_load)):
-                    f.write(z + '\t' + str(h+1) + '\t' + str(max(0,df_load.loc[h,z])) + '\n')
+                    f.write(z + '\t' + str(h+1) + '\t' + str(max(0,df_load.loc[h,z] + df_pumping.loc[h,z])) + '\n')
+        elif z in d_nodes and not z in p_nodes:
+            for h in range(0,len(df_load)):
+                    f.write(z + '\t' + str(h+1) + '\t' + str(max(0,df_load.loc[h,z])) + '\n')        
         else:
             for h in range(0,len(df_load)):
                     f.write(z + '\t' + str(h+1) + '\t' + str(0) + '\n')
