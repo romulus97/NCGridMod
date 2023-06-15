@@ -18,14 +18,18 @@ from datetime import datetime
 import pyomo.environ as pyo
 from pyomo.environ import value
 
+#Outputs folder
+#folder = '/home/lprieto/Research/M2S_line_outages/Outputs/'
+folder_2 = '/home/lprieto/Research/M2S_line_outages/Outputs_2/'
+
 # Max = 365
-days = 4
+days = 365
 
 instance = m1.create_instance('MTS_data.dat')
 instance2 = m2.create_instance('MTS_data.dat')
 instance2.dual = pyo.Suffix(direction=pyo.Suffix.IMPORT)
 
-opt = SolverFactory("cplex")
+opt = SolverFactory("gurobi")
 opt.options["threads"] = 8
 
 H = instance.HorizonHours
@@ -47,10 +51,6 @@ duals=[]
 df_generators = pd.read_csv('data_genparams_partial.csv',header=0)
 
 
-##hourly ts of load at substation-level
-df_load = pd.read_csv('data_load.csv',header=0)
-d_nodes = list(df_load.columns)
-
 #max here can be (1,365)
 for day in range(1,days):
     
@@ -61,6 +61,11 @@ for day in range(1,days):
             instance2.HorizonDemand[z,i] = instance.SimDemand[z,(day-1)*24+i]
 
             # instance.HorizonReserves[i] = instance.SimReserves[(day-1)*24+i]
+
+    for z in instance.lines:
+        for i in K:
+            instance.HorizonLineLimit[z,i] = instance.SimLineLimit[z,(day-1)*24+i]
+            instance2.HorizonLineLimit[z,i] = instance2.SimLineLimit[z,(day-1)*24+i]
 
     for z in instance.Hydro:
     #load Hydropower time series data
@@ -122,11 +127,11 @@ for day in range(1,days):
         varobject = getattr(instance, str(v))
         a=str(v)
                   
-        if a=='Theta':
-            for index in varobject:
-                if int(index[1]>0 and index[1]<25):
-                    if index[0] in instance.buses:
-                        vlt_angle.append((index[0],index[1]+((day-1)*24),varobject[index].value))
+        # if a=='Theta':
+        #     for index in varobject:
+        #         if int(index[1]>0 and index[1]<25):
+        #             if index[0] in instance.buses:
+        #                 vlt_angle.append((index[0],index[1]+((day-1)*24),varobject[index].value))
                         
         if a=='mwh':
             for index in varobject:
@@ -165,7 +170,7 @@ for day in range(1,days):
 
     print(day)
         
-vlt_angle_pd=pd.DataFrame(vlt_angle,columns=('Node','Time','Value'))
+# vlt_angle_pd=pd.DataFrame(vlt_angle,columns=('Node','Time','Value'))
 mwh_pd=pd.DataFrame(mwh,columns=('Generator','Time','Value'))
 # on_pd=pd.DataFrame(on,columns=('Generator','Time','Value'))
 # switch_pd=pd.DataFrame(switch,columns=('Generator','Time','Value'))
@@ -176,15 +181,15 @@ flow_pd = pd.DataFrame(flow,columns=('Line','Time','Value'))
 duals_pd = pd.DataFrame(duals,columns=['Constraint','Bus','Time','Value'])
 
 #to save outputs
-mwh_pd.to_csv('mwh.csv')
-vlt_angle_pd.to_csv('vlt_angle.csv')
+mwh_pd.to_csv(folder_2 + 'mwh_10ft.csv')
+# vlt_angle_pd.to_csv('vlt_angle.csv')
 # on_pd.to_csv('on.csv')
 # switch_pd.to_csv('switch.csv')
 # srsv_pd.to_csv('srsv.csv')
 # nrsv_pd.to_csv('nrsv.csv')
-slack_pd.to_csv('slack.csv')
-flow_pd.to_csv('flow.csv')
-duals_pd.to_csv('duals.csv')
+slack_pd.to_csv(folder_2 + 'slack_10ft.csv')
+flow_pd.to_csv(folder_2 + 'flow_10ft.csv')
+duals_pd.to_csv(folder_2 + 'duals_10ft.csv')
 
 
 

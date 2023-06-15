@@ -3,6 +3,8 @@ import csv
 import pandas as pd
 import numpy as np
 
+#Flooding input data
+folder = '/home/lprieto/Research/M2S_line_outages/Inputs/'
 
 ######=================================================########
 ######               Segment A.1                       ########
@@ -32,17 +34,19 @@ df_linetobusmap = pd.read_csv('line_to_bus.csv',header=0)
 df_line_params = pd.read_csv('line_params.csv',header=0)
 lines = list(df_line_params['line'])
 
+#outage data
+df_outages = pd.read_csv(folder + 'lines_10ft.csv',header=0,index_col=0) #Change the file according to the flooding depth
 
 ##hourly ts of hydro at nodal-level
 df_hydro = pd.read_csv('data_hydro_H.csv',header=0)
 h_gens = list(df_hydro.columns)
 
-##hourly ts of hydro at nodal-level
-df_pumping = pd.read_csv('data_hydro_P.csv',header=0)
-p_nodes = list(df_pumping.columns)
+# ##hourly ts of hydro at nodal-level
+# df_pumping = pd.read_csv('data_hydro_P.csv',header=0)
+# p_nodes = list(df_pumping.columns)
 
 ##hourly ts of dispatchable solar-power at each plant
-df_solar = pd.read_csv('data_solar.csv',header=0)   
+df_solar = pd.read_csv(folder + 'data_solar_10ft_final.csv',header=0) #Change the file  
 s_gens = list(df_solar.columns)
 
 ##hourly ts of dispatchable solar-power at each plant
@@ -50,7 +54,7 @@ df_nuc = pd.read_csv('data_nuc.csv',header=0)
 n_gens = list(df_nuc.columns)
 
 ##hourly ts of load at substation-level
-df_load = pd.read_csv('data_load.csv',header=0)
+df_load = pd.read_csv(folder + 'data_load_10ft_final.csv',header=0) #Change the file
 d_nodes = list(df_load.columns)
 # for i in range(0,len(d_nodes)):
 #     d_nodes[i] = 'n_' + d_nodes[i]
@@ -229,19 +233,19 @@ with open(''+str(data_name)+'.dat', 'w') as f:
     f.write(';\n\n')
 
     print('trans paths')
-######=================================================########
-######               Segment A.9                       ########
-######=================================================########
+# ######=================================================########
+# ######               Segment A.9                       ########
+# ######=================================================########
 
-####### Hourly timeseries (load, hydro, solar, wind, reserve)
+# ####### Hourly timeseries (load, hydro, solar, wind, reserve)
     
     # load (hourly)
     f.write('param:' + '\t' + 'SimDemand:=' + '\n')      
     for z in all_nodes:
-        if z in d_nodes and z in p_nodes:
-            for h in range(0,len(df_load)):
-                    f.write(z + '\t' + str(h+1) + '\t' + str(max(0,df_load.loc[h,z] + df_pumping.loc[h,z])) + '\n')
-        elif z in d_nodes and not z in p_nodes:
+        # if z in d_nodes and z in p_nodes:
+        #     for h in range(0,len(df_load)):
+        #             f.write(z + '\t' + str(h+1) + '\t' + str(max(0,df_load.loc[h,z] + df_pumping.loc[h,z])) + '\n')
+        if z in d_nodes:# and not z in p_nodes:
             for h in range(0,len(df_load)):
                     f.write(z + '\t' + str(h+1) + '\t' + str(max(0,df_load.loc[h,z])) + '\n')        
         else:
@@ -249,6 +253,16 @@ with open(''+str(data_name)+'.dat', 'w') as f:
                     f.write(z + '\t' + str(h+1) + '\t' + str(0) + '\n')
 
     f.write(';\n\n')
+    
+    
+    # outage (hourly)
+    f.write('param:' + '\t' + 'SimLineLimit:=' + '\n')      
+    for z in lines:
+        idx = lines.index(z)
+        for h in range(0,len(df_outages)-1):
+            f.write(z + '\t' + str(h+1) + '\t' + str(df_outages.loc[h,z]*df_line_params.loc[idx,'limit']) + '\n')      
+    f.write(';\n\n')
+    
     
     # wind and solar (hourly)
     f.write('param:' + '\t' + 'SimSolar:=' + '\n')
@@ -282,13 +296,13 @@ with open(''+str(data_name)+'.dat', 'w') as f:
 
 ####### Nodal must run
      
-    f.write('param:' + '\t' + 'Must:=' + '\n')
-    for z in all_nodes:
-        if z in h3:
-            f.write(z + '\t' + str(df_must.loc[0,z]) + '\n')
-        else:
-            f.write(z + '\t' + str(0) + '\n')
-    f.write(';\n\n')
+    # f.write('param:' + '\t' + 'Must:=' + '\n')
+    # for z in all_nodes:
+    #     if z in h3:
+    #         f.write(z + '\t' + str(df_must.loc[0,z]) + '\n')
+    #     else:
+    #         f.write(z + '\t' + str(0) + '\n')
+    # f.write(';\n\n')
     
     
 ###### System-wide hourly reserve

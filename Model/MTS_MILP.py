@@ -91,6 +91,14 @@ model.SimDemand = Param(model.buses*model.SH_periods, within=NonNegativeReals)
 #Horizon demand
 model.HorizonDemand = Param(model.buses*model.hh_periods,within=NonNegativeReals,mutable=True,initialize=0)
 
+#Demand over simulation period
+model.SimLineLimit = Param(model.lines*model.SH_periods, within=NonNegativeReals)
+
+#Horizon demand
+model.HorizonLineLimit = Param(model.lines*model.hh_periods,within=NonNegativeReals,mutable=True,initialize=0)
+
+
+
 #Reserve for the entire system
 # model.SimReserves = Param(model.SH_periods, within=NonNegativeReals)
 # model.HorizonReserves = Param(model.hh_periods, within=NonNegativeReals,mutable=True)
@@ -106,8 +114,8 @@ model.HorizonSolar = Param(model.Solar,model.hh_periods,within=NonNegativeReals,
 model.HorizonNuc = Param(model.Nuc,model.hh_periods,within=NonNegativeReals,mutable=True)
 
 
-#Must run resources
-model.Must = Param(model.buses,within=NonNegativeReals)
+# #Must run resources
+# model.Must = Param(model.buses,within=NonNegativeReals)
 
 ######=================================================########
 ######               Segment B.7                       ########
@@ -137,6 +145,9 @@ model.S = Var(model.buses,model.hh_periods, within=NonNegativeReals,initialize=0
 model.Flow= Var(model.lines,model.hh_periods)
 model.Theta= Var(model.buses,model.hh_periods)
 
+#This is created to enforce a penalty on power flows, which prevents slack generation to be transmitted elsewhere in the grid. 
+model.DummyFlow = Var(model.lines,model.hh_periods,initialize=0)
+
 
 ######=================================================########
 ######               Segment B.8                       ########
@@ -148,13 +159,14 @@ def SysCost(model):
   
     fixed = sum(model.no_load[j]*model.on[j,i] for i in model.hh_periods for j in model.Dispatchable)
     starts = sum(model.st_cost[j]*model.switch[j,i] for i in model.hh_periods for j in model.Dispatchable)
-    coal = sum(model.mwh[j,i]*(model.heat_rate[j]*2 + model.var_om[j]) for i in model.hh_periods for j in model.Coal)  
+    coal = sum(model.mwh[j,i]*(model.heat_rate[j]*1.51 + model.var_om[j]) for i in model.hh_periods for j in model.Coal)  
     oil = sum(model.mwh[j,i]*(model.heat_rate[j]*10 + model.var_om[j]) for i in model.hh_periods for j in model.Oil)
-    gas = sum(model.mwh[j,i]*(model.heat_rate[j]*4.5 + model.var_om[j]) for i in model.hh_periods for j in model.Gas)
+    gas = sum(model.mwh[j,i]*(model.heat_rate[j]*3.39 + model.var_om[j]) for i in model.hh_periods for j in model.Gas)
     slack = sum(model.S[z,i]*10000 for i in model.hh_periods for z in model.buses)
     solar = sum(model.mwh[j,i]*.01 for i in model.hh_periods for j in model.Solar)
+    powerflow_cost = sum(model.DummyFlow[l,i]*0.01 for l in model.lines for i in model.hh_periods)
     
-    return coal + oil + gas + slack + fixed + starts + solar
+    return coal + oil + gas + slack + fixed + starts + solar + powerflow_cost
 
 model.SystemCost = Objective(rule=SysCost, sense=minimize)
 
@@ -254,8 +266,8 @@ def Nodal_Balance(model,z,i):
     power_flow = sum(model.Flow[l,i]*model.LinetoBusMap[l,z] for l in model.lines)   
     gen = sum(model.mwh[j,i]*model.BustoUnitMap[j,z] for j in model.Generators)    
     slack = model.S[z,i]
-    must_run = model.Must[z]
-    return gen + slack + must_run - power_flow == model.HorizonDemand[z,i] 
+    # must_run = model.Must[z] 
+    return gen + slack - power_flow == model.HorizonDemand[z,i] #must run
 model.Node_Constraint = Constraint(model.buses,model.hh_periods,rule=Nodal_Balance)
 
 def Flow_line(model,l,i):
@@ -267,12 +279,12 @@ def Theta_bus(model,i):
         return model.Theta['n_6682',i] == 0
 model.ThetaB_Constraint = Constraint(model.hh_periods,rule=Theta_bus)
 
-def FlowUP_line(model,l,i):
-    return  model.Flow[l,i] <= model.FlowLim[l]
+def FlowUP_line(model,l,i): 
+    return  model.Flow[l,i] <= model.HorizonLineLimit[l,i]
 model.FlowU_Constraint = Constraint(model.lines,model.hh_periods,rule=FlowUP_line)
 
 def FlowLow_line(model,l,i):
-    return  -1*model.Flow[l,i] <= model.FlowLim[l]
+    return  -1*model.Flow[l,i] <= model.HorizonLineLimit[l,i]
 model.FlowLL_Constraint = Constraint(model.lines,model.hh_periods,rule=FlowLow_line)
 
 ######=================================================########
@@ -306,6 +318,15 @@ model.FlowLL_Constraint = Constraint(model.lines,model.hh_periods,rule=FlowLow_l
 # def ZeroSum(model,j,i):
 #     return model.mwh[j,i] + model.srsv[j,i] + model.nrsv[j,i] <= model.maxcap[j]
 # model.ZeroSumConstraint=Constraint(model.Generators,model.hh_periods,rule=ZeroSum)
+
+#Making sure that dummy flow is equal to actual flow on the lines
+def DummyFlow1(model,l,i):
+    return  model.DummyFlow[l,i] >= model.Flow[l,i]
+model.DummyFlow1_Constraint = Constraint(model.lines,model.hh_periods,rule=DummyFlow1)
+
+def DummyFlow2(model,l,i):
+    return  model.DummyFlow[l,i] >= model.Flow[l,i]*-1
+model.DummyFlow2_Constraint = Constraint(model.lines,model.hh_periods,rule=DummyFlow2)
 
 
 ######======================================#############
