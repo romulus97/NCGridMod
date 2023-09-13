@@ -1,9 +1,10 @@
 #!/bin/tcsh
 
 # activate environment
-conda activate PyPSA
+conda activate /usr/local/usrapps/infews/group_env
+module load gurobi
 
 #Submit job
-python wrapper.py
+bsub -n 8 -R "span[hosts=1]" -W 5000 -o out.%J -e err.%J "python MTSDataSetup.py"
 
 conda deactivate
